@@ -1,182 +1,127 @@
 # PTA Auto Solver
 
-一个面向 [拼题 A（PTA）](https://pintia.cn/) 的 Tampermonkey AI 辅助答题脚本。
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="PTA Auto Solver：在 PTA 页面读取题目、调用所选 AI 模型、写入答案并跟踪评分。">
+</p>
 
-当前版本：`1.5.0`  
-作者：`NeuronCState`
+<p align="center">
+  <a href="https://neuroncstate.github.io/PTA-Auto-Solver/">项目主页</a> ·
+  <a href="./PTA%20Auto%20Solver%20Pro-1.5.0.user.js">安装脚本</a> ·
+  <a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues">反馈问题</a>
+</p>
 
-项目主页：[neuroncstate.github.io/PTA-Auto-Solver](https://neuroncstate.github.io/PTA-Auto-Solver/)
+PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上的 Tampermonkey AI 辅助答题脚本。它读取当前题目上下文，调用你选择的 AI 供应商，把结果写入 PTA 编辑器，并在提交后读取评分。
 
-## 功能
+> 当前版本：`1.5.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
 
-- 支持 DeepSeek 和 MiMo 两个 AI 供应商。
-- 接入 OpenRouter，自动读取多供应商模型，并将 Free 模型排在下拉列表最上方。
-- 填写 API Key 后自动读取供应商模型列表，可手动选择模型。
-- DeepSeek 默认关闭图片输入，MiMo 默认开启图片输入。
-- 首页直接选择编程语言，支持自动检测、C、C++、Python、Java、Pascal。
-- 自定义黑白玻璃风格面板和统一下拉框动画。
-- “跳过已作答”“连续答题”和图片输入均使用横向胶囊按钮。
-- 一个按钮同时切换 PTA 页面和脚本面板的深色/浅色模式。
-- 显示真实题目总进度，例如 `1 / 30`、`2 / 30`。
-- 编程题和函数题支持：
-  1. 提取题干、函数接口、代码框架、裁判代码和样例；
-  2. 请求 AI 生成代码；
-  3. 写入 PTA 编辑器；
-  4. 点击“提交本题作答”；
-  5. 等待 PTA 评分并读取分数；
-  6. 非满分时最多自动重答 1 次；
-  7. 开启“连续答题”且本题满分时进入下一题。
-- 可选择跳过已经填写过答案的题目。
-- 错误会显示在面板状态和运行记录中，不依赖无法捕获的弹窗。
+## 先看界面
 
-## 界面预览
+<p align="center">
+  <img src="./screenshots/main-page.png" width="31%" alt="PTA Auto Solver 主页面，包含进度、语言选择、跳过已作答、连续下一题和开始解题按钮。">
+  <img src="./screenshots/dark-mode-main-page.png" width="31%" alt="PTA Auto Solver 深色模式主页面。">
+  <img src="./screenshots/model-settings.png" width="31%" alt="PTA Auto Solver 的模型配置页面。">
+</p>
 
-### 主页面
+## 它能做什么
 
-![PTA Auto Solver 主页面](./screenshots/main-page.png)
+- 从具体题目页读取题干、样例、函数接口、代码框架与裁判代码等上下文。
+- 支持判断、单选、多选、填空、程序填空、函数题与编程题；多文件编程题尚未接入专用提取流程。
+- 为编程题生成代码，写入 PTA 编辑器，提交后等待评分并读取结果。
+- 非满分时最多自动重答 1 次；开启“连续答题”后，满分会进入下一题。
+- 提供自动检测、C、C++、Python、Java、Pascal 五种语言选择。
+- 统一控制脚本面板与 PTA 页面的浅色 / 深色主题，并展示真实题目进度与运行记录。
 
-### 深色模式主页面
+## 解题流程
 
-![PTA Auto Solver 深色模式](./screenshots/dark-mode-main-page.png)
+<p align="center">
+  <img src="./assets/readme/workflow.svg" width="100%" alt="PTA Auto Solver 工作流：进入具体题目，选择模型并开始，提取题干并写入答案，提交后读取评分。">
+</p>
 
-### 模型配置页面
+自动提交会在 PTA 中留下真实提交记录。首次使用建议关闭“连续答题”，先检查生成的代码和评分，再决定是否连续处理。
 
-![PTA Auto Solver 模型配置](./screenshots/model-settings.png)
+## 3 分钟开始使用
 
-## 支持题型
+1. 安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)。
+2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/) 并点击“安装 / 更新脚本”，或直接打开 [PTA Auto Solver Pro-1.5.0.user.js](./PTA%20Auto%20Solver%20Pro-1.5.0.user.js)。
+3. 在 Tampermonkey 确认安装，刷新 PTA 页面。
+4. 登录 PTA 并进入**具体题目页面**；右下角会出现脚本面板。
+5. 点击面板右上角设置，选择供应商、填写 API Key、等待模型列表加载，然后点击“测试”。
+6. 在首页确认编程语言与开关，点击“开始解题”。需要停止时点击“停止解题”。
 
-| PTA 类型 | 脚本支持 |
+如果浏览器没有自动跳到安装页，可在 Tampermonkey 控制面板选择“添加新脚本”或“导入”，再导入 `.user.js` 文件。
+
+## 模型与配置
+
+| 供应商 | 图片输入默认值 | 鉴权方式 | 特性 |
+| --- | --- | --- | --- |
+| DeepSeek | 关闭 | Bearer Token | 文字 / 代码 |
+| MiMo | 开启 | `api-key` 请求头 | 推理 / 代码 |
+| OpenRouter | 关闭 | Bearer Token | 聚合多供应商，Free 模型置顶 |
+
+模型名称不会固定写死：填写 API Key 后，脚本请求对应的 `/models` 接口并展示可用模型。OpenRouter 的 Free 模型会优先显示，并在名称后标注 `· Free`。
+
+API Key 仅保存在当前浏览器的本地配置中；脚本不将 Key 上传到自建服务器，但会按所选供应商 API 的要求发送给该供应商。
+
+### 常用选项
+
+- **跳过已作答**：不处理已经填入答案的题目。
+- **连续答题**：本题满分后进入下一题。
+- **自动检测语言**：依据题目标题、接口与代码内容判断；也可手动指定 C、C++、Python、Java 或 Pascal。
+- **主题切换**：面板顶部月亮 / 太阳按钮会同步切换 PTA 页面、面板、设置抽屉与下拉框主题；选择会在浏览器中保存。
+
+编程题的请求预算为 `32768` tokens，普通题为 `2048` tokens，连接测试为 `256` tokens。
+
+## 支持范围
+
+| PTA 题型 | 支持情况 |
 | --- | --- |
-| 判断题 | 支持 |
-| 单选题 | 支持 |
-| 多选题 | 支持 |
-| 填空题 | 支持 |
-| 程序填空题 | 支持 |
-| 函数题 | 支持 |
-| 编程题 | 支持 |
-| 多文件编程题 | 当前未接入专用提取流程 |
-
-## 安装
-
-1. 安装 Tampermonkey 浏览器扩展。
-2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver Pro-1.5.0.user.js](./PTA%20Auto%20Solver%20Pro-1.5.0.user.js)。
-3. 在 Tampermonkey 页面确认安装或更新脚本。
-4. 刷新 PTA 页面。
-
-如果浏览器没有自动进入安装页面，也可以打开 Tampermonkey 控制面板，选择“添加新脚本”或“导入”，然后导入 `.user.js` 文件。
-
-脚本元数据已经配置 `@updateURL` 和 `@downloadURL`。旧版文件仍保留为兼容入口，已安装用户会自动切换到 1.5.0 文件；后续发布新版本时，Tampermonkey 可以从仓库的原始脚本地址检查更新。
-
-## GitHub Pages
-
-`docs/` 是项目主页的静态源文件，发布后地址为：
-
-<https://neuroncstate.github.io/PTA-Auto-Solver/>
-
-仓库设置中选择 **Settings → Pages → Deploy from a branch → `main` / `/docs`** 即可启用。页面包含安装入口、功能介绍、截图和 GitHub 链接；`robots.txt` 与 `sitemap.xml` 也已准备好，搜索引擎收录需要等待一段时间，不能保证立即出现在搜索结果中。
-
-## 使用方法
-
-### 1. 打开 PTA 题目页面
-
-先在 Chrome 或 Edge 中登录 PTA，然后进入具体题目页面。脚本面板会显示在页面右下角。
-
-### 2. 配置 AI
-
-点击面板右上角的设置按钮：
-
-- 选择 DeepSeek 或 MiMo；
-- 填写对应 API Key；
-- 等待模型列表自动读取；
-- 在可用模型下拉框中选择模型；
-- 点击“测试”确认连接正常。
-
-API Key 只保存在当前浏览器本地配置中。脚本不会把 Key 上传到自建服务器，但 Key 会按照供应商 API 的要求发送给所选供应商。
-
-### 3. 设置编程语言
-
-编程语言选择位于脚本首页：
-
-- “自动检测”会根据题目标题、接口和代码内容判断语言；
-- 也可以手动选择 C、C++、Python、Java 或 Pascal；
-- 再次点击已经打开的下拉框可以收起菜单。
-
-### 4. 开始答题
-
-- “跳过已作答”：跳过已有答案的题目；
-- “连续答题”：当前题满分后自动进入下一题；
-- 点击“开始解题”启动流程；
-- 点击“停止解题”停止后续处理。
-
-编程题预算为 `32768` tokens，普通题预算为 `2048` tokens，连接测试使用 `256` tokens。
-
-## 主题切换
-
-面板顶部的月亮/太阳按钮可以同时切换：
-
-- PTA 页面主题；
-- PTA Auto Solver 面板主题；
-- 设置抽屉、输入框、模型下拉框和语言下拉框主题。
-
-主题选择会保存在当前浏览器，下次打开 PTA 时自动恢复。
-
-## API 配置
-
-脚本当前只保留以下供应商：
-
-| 供应商 | 默认图片输入 | 鉴权方式 |
-| --- | --- | --- |
-| DeepSeek | 关闭 | Bearer Token |
-| MiMo | 开启 | `api-key` 请求头 |
-| OpenRouter | 关闭 | Bearer Token |
-
-模型不会固定写死，脚本会请求供应商的 `/models` 接口并显示返回的可用模型。OpenRouter 返回的 Free 模型会优先显示，并在名称后标注 `· Free`。
+| 判断题、单选题、多选题、填空题 | 支持 |
+| 程序填空题、函数题、编程题 | 支持 |
+| 多文件编程题 | 暂未接入专用提取流程 |
 
 ## 常见问题
 
-### 模型列表为空
+<details>
+<summary><strong>模型列表为空</strong></summary>
 
-检查 API Key 是否完整、供应商是否选对，然后点击“刷新模型”。如果 Key 无效，错误会显示在设置页面和运行记录中。
+确认 API Key 完整且供应商选择正确，再点击“刷新模型”。无效 Key 的错误会显示在设置页和运行记录中。
+</details>
 
-### AI 返回为空或只有推理内容
+<details>
+<summary><strong>AI 返回为空或只有推理内容</strong></summary>
 
-部分思考型模型可能消耗大量输出预算，只返回 `reasoning_content` 而没有最终答案。当前代码题预算已经提高到 `32768` tokens；仍然失败时，可以更换模型或重新测试连接。
+部分思考型模型可能消耗大量输出预算，只返回 `reasoning_content` 而没有最终答案。可更换模型或重新测试连接。
+</details>
 
-### 进度一直显示“等待开始”
+<details>
+<summary><strong>进度一直显示“等待开始”</strong></summary>
 
-确认已进入具体题目页面，而不是题目集概览页。脚本会读取 PTA 题目导航中的题目总数和当前题号。
+请确认打开的是具体题目页而非题目集概览页。脚本从 PTA 题目导航读取总题数和当前题号。
+</details>
 
-### 脚本没有显示
+<details>
+<summary><strong>脚本没有显示</strong></summary>
 
-检查：
+检查 Tampermonkey 是否启用、网址是否为 `https://pintia.cn/`、页面是否已刷新，以及是否安装了最新版脚本。
+</details>
 
-- Tampermonkey 是否启用；
-- 当前网址是否为 `https://pintia.cn/`；
-- 是否刷新了页面；
-- 是否安装了最新版脚本。
+<details>
+<summary><strong>深色模式页面颜色异常</strong></summary>
 
-### 深色模式页面颜色异常
+深色模式会统一处理 PTA 页面，同时尽量保留普通图片和视频的原始观感。个别 PTA 弹层或第三方组件使用独立样式，刷新页面后通常可恢复。
+</details>
 
-深色模式会对 PTA 页面进行统一暗色处理，并保留常规图片/视频的原始观感。个别 PTA 弹层或第三方组件可能使用独立样式，刷新页面后通常可以恢复。
+## 权限与验证
 
-## 权限说明
+脚本使用 `GM_xmlhttpRequest` 请求模型列表和聊天接口，使用 `GM_setClipboard` 在编辑器无法直接写入时复制答案到剪贴板；仅允许连接 `api.deepseek.com`、`api.xiaomimimo.com` 与 `openrouter.ai`。
 
-脚本使用的主要权限：
+- JavaScript 语法检查已通过。
+- 已在真实 PTA 函数题页验证：代码写入、提交、等待评分、读取 `20 / 20`，以及满分后进入下一题。
 
-- `GM_xmlhttpRequest`：请求 AI 供应商模型列表和聊天接口；
-- `GM_setClipboard`：当编辑器无法直接写入时，将答案复制到剪贴板；
-- `@connect api.deepseek.com`：访问 DeepSeek API；
-- `@connect api.xiaomimimo.com`：访问 MiMo API；
-- `@connect openrouter.ai`：访问 OpenRouter 模型列表和聊天接口。
+## 项目主页与更新
 
-脚本只匹配 `https://pintia.cn/*` 页面。
+`docs/` 是 GitHub Pages 的静态源文件，发布地址为 <https://neuroncstate.github.io/PTA-Auto-Solver/>。仓库设置中选择 **Settings → Pages → Deploy from a branch → `main` / `/docs`** 即可启用。
 
-## 验证记录
+如果 Pages 当前选择的是 `main` / `/(root)`，仓库根目录也提供了入口，会自动跳转到 `docs/`。若仍显示 404，请在 **Settings → Pages** 确认已经选择发布源；仅提交网页文件不会自动开启 GitHub Pages。
 
-- JavaScript 语法检查通过。
-- 已在真实 PTA 函数题页面验证：代码写入、提交、等待评分、读取 `20 / 20`、满分后进入下一题。
-- 当前版本包含最新主题切换和深色控件样式，重新导入脚本后生效。
-
-## 使用提醒
-
-自动提交会对 PTA 产生真实提交记录。建议首次使用时关闭“连续答题”，先检查 AI 生成的代码和评分结果，再开启连续处理。
+脚本元数据已配置 `@updateURL` 和 `@downloadURL`；发布新版本后，Tampermonkey 可以从仓库原始脚本地址检查更新。
