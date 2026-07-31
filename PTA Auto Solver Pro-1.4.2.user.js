@@ -5,6 +5,10 @@
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
+// @homepageURL  https://neuroncstate.github.io/PTA-Auto-Solver/
+// @supportURL   https://github.com/NeuronCState/PTA-Auto-Solver/issues
+// @updateURL    https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.4.2.user.js
+// @downloadURL  https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.4.2.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
 // @connect      api.deepseek.com
