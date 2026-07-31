@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver
 // @namespace    https://pintia.cn/
-// @version      1.4.2
+// @version      1.5.0
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -13,6 +13,7 @@
 // @grant        GM_setClipboard
 // @connect      api.deepseek.com
 // @connect      api.xiaomimimo.com
+// @connect      openrouter.ai
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -34,6 +35,13 @@
             auth: 'api-key',
             supportsImages: true,
             hint: '推理 / 代码 · 默认开启图片'
+        },
+        openrouter: {
+            name: 'OpenRouter',
+            baseUrl: 'https://openrouter.ai/api/v1',
+            auth: 'bearer',
+            supportsImages: true,
+            hint: '多供应商 · Free 模型置顶'
         }
     };
     var LANG_NAMES = { c: 'C', cpp: 'C++', python: 'Python', java: 'Java', pascal: 'Pascal' };
@@ -42,8 +50,9 @@
         running: false,
         provider: 'deepseek',
         configs: {
-            deepseek: { apiKey: '', model: '', models: [], modelError: '', images: false },
-            mimo: { apiKey: '', model: '', models: [], modelError: '', images: true }
+            deepseek: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false },
+            mimo: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: true },
+            openrouter: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }
         },
         skipAnswered: true,
         continuous: true,
@@ -65,10 +74,11 @@
     function loadState() {
         var saved = readJson(STORAGE_KEY, null);
         if (saved) {
-            state.provider = saved.provider === 'mimo' ? 'mimo' : 'deepseek';
+            state.provider = ['deepseek', 'mimo', 'openrouter'].indexOf(saved.provider) >= 0 ? saved.provider : 'deepseek';
             state.configs = Object.assign(state.configs, saved.configs || {});
-            state.configs.deepseek = Object.assign({ apiKey: '', model: '', models: [], modelError: '', images: false }, state.configs.deepseek || {});
-            state.configs.mimo = Object.assign({ apiKey: '', model: '', models: [], modelError: '', images: true }, state.configs.mimo || {});
+            state.configs.deepseek = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }, state.configs.deepseek || {});
+            state.configs.mimo = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: true }, state.configs.mimo || {});
+            state.configs.openrouter = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }, state.configs.openrouter || {});
             state.skipAnswered = saved.skipAnswered !== false;
             state.continuous = saved.continuous !== false;
             state.language = ['auto', 'c', 'cpp', 'python', 'java', 'pascal'].indexOf(saved.language) >= 0 ? saved.language : 'auto';
@@ -450,6 +460,10 @@
         var headers = method === 'GET' ? {} : { 'Content-Type': 'application/json' };
         if (PROVIDERS[provider].auth === 'api-key') headers['api-key'] = apiKey;
         else headers.Authorization = 'Bearer ' + apiKey;
+        if (provider === 'openrouter') {
+            headers['HTTP-Referer'] = 'https://pintia.cn/';
+            headers['X-Title'] = 'PTA Auto Solver';
+        }
         return headers;
     }
 
@@ -473,17 +487,48 @@
                     if (response.status < 200 || response.status >= 300) {
                         reject(new Error(apiError('获取模型失败', response.status, data))); return;
                     }
-                    var models = (Array.isArray(data.data) ? data.data : []).map(function (item) { return item && item.id; }).filter(function (id) {
-                        return id && !/asr|tts|voiceclone|voicedesign/i.test(id);
+                    var items = (Array.isArray(data.data) ? data.data : []).filter(function (item) {
+                        if (!item || !item.id || /asr|tts|voiceclone|voicedesign|embedding/i.test(item.id)) return false;
+                        var outputModalities = item.architecture && item.architecture.output_modalities;
+                        return !Array.isArray(outputModalities) || outputModalities.indexOf('text') >= 0;
+                    });
+                    if (provider === 'openrouter') items.sort(function (a, b) { return Number(isFreeModel(b)) - Number(isFreeModel(a)); });
+                    var seen = {};
+                    var models = items.map(function (item) { return item.id; }).filter(function (id) {
+                        if (seen[id]) return false;
+                        seen[id] = true;
+                        return true;
                     });
                     if (!models.length) { reject(new Error('接口没有返回可用于答题的模型')); return; }
-                    resolve(Array.from(new Set(models)));
+                    var meta = {};
+                    items.forEach(function (item) {
+                        meta[item.id] = {
+                            free: provider === 'openrouter' && isFreeModel(item),
+                            images: provider === 'openrouter' && supportsImageInput(item)
+                        };
+                    });
+                    resolve({ ids: models, meta: meta });
                 },
                 onerror: function () { reject(new Error('获取模型失败：网络请求失败，请检查网络、脚本连接权限或 API Key')); },
                 ontimeout: function () { reject(new Error('获取模型失败：请求超时（30 秒）')); },
                 onabort: function () { reject(new Error('获取模型失败：请求被中止')); }
             });
         });
+    }
+
+    function isFreeModel(model) {
+        if (!model) return false;
+        if (/:(free)$/i.test(String(model.id || '')) || model.id === 'openrouter/free') return true;
+        var pricing = model.pricing || {};
+        var fields = ['prompt', 'completion', 'request', 'image'];
+        return fields.some(function (field) { return pricing[field] !== undefined; }) && fields.every(function (field) {
+            return pricing[field] === undefined || Number(pricing[field]) === 0;
+        });
+    }
+
+    function supportsImageInput(model) {
+        var modalities = model && model.architecture && model.architecture.input_modalities;
+        return Array.isArray(modalities) && modalities.indexOf('image') >= 0;
     }
 
     function requestAI(messages, maxTokens) {
@@ -821,6 +866,7 @@
     .pta-secondary{height:32px;border:1px solid var(--pta-line);border-radius:8px;background:rgba(255,255,255,.52);color:var(--pta-text);padding:0 11px;cursor:pointer;font:600 11px inherit;transition:background .2s ease,color .2s ease,transform .2s ease}.pta-secondary:hover{background:#111;color:#fff;transform:translateY(-1px)}.pta-drawer-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.pta-image-option{display:flex;align-items:center;gap:6px;color:var(--pta-muted);font-size:11px}.pta-image-option input{accent-color:#111}.pta-fixed,.pta-status{background:rgba(245,245,245,.6)}.pta-toast{background:#111}.pta-icon-btn:hover,.pta-link-btn:hover{background:rgba(0,0,0,.08);color:#111}.pta-error{color:#333!important;font-weight:600}
     .pta-model-select{position:relative}.pta-model-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.pta-select-trigger{width:100%;height:38px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--pta-line);border-radius:10px;padding:0 11px;background:rgba(255,255,255,.56);color:var(--pta-text);font:12px inherit;text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease}.pta-select-trigger:hover,.pta-model-select.open .pta-select-trigger{border-color:#111;background:#fff}.pta-model-select.open .pta-select-trigger{box-shadow:0 0 0 3px rgba(0,0,0,.06)}.pta-select-trigger:disabled{cursor:not-allowed;opacity:.55}.pta-select-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pta-select-chevron{width:7px;height:7px;flex:0 0 auto;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .24s cubic-bezier(.22,1,.36,1)}.pta-model-select.open .pta-select-chevron{transform:rotate(225deg) translate(-1px,-2px)}.pta-select-menu{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:20;padding:4px;border:1px solid rgba(0,0,0,.12);border-radius:11px;background:rgba(255,255,255,.92);box-shadow:0 14px 32px rgba(0,0,0,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);opacity:0;visibility:hidden;transform:translateY(-5px) scale(.985);transform-origin:top center;transition:opacity .2s ease,transform .24s cubic-bezier(.22,1,.36,1),visibility 0s linear .24s;max-height:176px;overflow:auto}.pta-model-select.open .pta-select-menu{opacity:1;visibility:visible;transform:none;transition-delay:0s}.pta-select-option{display:flex;align-items:center;min-height:32px;padding:0 9px;border-radius:7px;color:#555;font-size:12px;cursor:pointer;opacity:0;transform:translateY(-3px);transition:background .16s ease,color .16s ease,opacity .2s ease,transform .24s cubic-bezier(.22,1,.36,1)}.pta-model-select.open .pta-select-option{opacity:1;transform:none;transition-delay:calc(var(--option-index,0) * 22ms)}.pta-select-option:hover,.pta-select-option.active{background:#111;color:#fff}.pta-select-option[aria-disabled="true"]{color:#999;cursor:default}.pta-select-option[aria-disabled="true"]:hover{background:transparent;color:#999}
     .pta-model-select.closing .pta-select-menu{opacity:0;visibility:visible;transform:translateY(-4px) scale(.985);transition:opacity .15s ease,transform .17s cubic-bezier(.4,0,.2,1),visibility 0s linear .17s}.pta-model-select.closing .pta-select-option{opacity:0;transform:translateY(-2px);transition-delay:calc(var(--option-index,0) * 8ms)}
+    .pta-provider{grid-template-columns:repeat(3,minmax(0,1fr))}
     @media(prefers-reduced-motion:reduce){#pta-shell,.pta-drawer,.pta-select-menu,.pta-select-option,.pta-select-chevron,.pta-primary,.pta-secondary{transition-duration:.01ms!important;animation-duration:.01ms!important}}
     `;
 
@@ -852,7 +898,7 @@
                 <div id="pta-drawer" class="pta-drawer">
                     <div class="pta-drawer-head"><button id="pta-drawer-close" class="pta-icon-btn">‹</button><div class="pta-drawer-title">设置</div><button id="pta-drawer-save" class="pta-save" style="width:auto;padding:0 12px;margin:0">保存</button></div>
                     <div class="pta-drawer-body">
-                        <div class="pta-provider"><button class="pta-provider-card active" data-provider="deepseek"><span class="pta-provider-name">DeepSeek</span><span class="pta-provider-hint">文字 / 代码</span></button><button class="pta-provider-card" data-provider="mimo"><span class="pta-provider-name">MiMo</span><span class="pta-provider-hint">推理 / 图片</span></button></div>
+                        <div class="pta-provider"><button class="pta-provider-card active" data-provider="deepseek"><span class="pta-provider-name">DeepSeek</span><span class="pta-provider-hint">文字 / 代码</span></button><button class="pta-provider-card" data-provider="mimo"><span class="pta-provider-name">MiMo</span><span class="pta-provider-hint">推理 / 图片</span></button><button class="pta-provider-card" data-provider="openrouter"><span class="pta-provider-name">OpenRouter</span><span class="pta-provider-hint">Free 置顶</span></button></div>
                         <div class="pta-fixed"><span>接口地址</span><strong id="pta-endpoint">api.deepseek.com/v1</strong></div>
                         <div class="pta-field"><label>API Key</label><input id="pta-api-key" type="password" autocomplete="off" placeholder="填写后自动读取模型列表"></div>
                         <div class="pta-field"><label>可用模型</label><div class="pta-model-select" id="pta-model-select"><select id="pta-model" class="pta-model-native" tabindex="-1" aria-hidden="true" disabled><option value="">填写 API Key 后获取</option></select><button type="button" class="pta-select-trigger" id="pta-model-trigger" aria-haspopup="listbox" aria-expanded="false" disabled><span class="pta-select-value" id="pta-model-value">填写 API Key 后获取</span><span class="pta-select-chevron" aria-hidden="true"></span></button><div class="pta-select-menu" id="pta-model-menu" role="listbox"></div></div><div id="pta-model-state" class="pta-help">模型由供应商接口实时返回。</div></div>
@@ -935,8 +981,11 @@
                 placeholder.value = ''; placeholder.textContent = config.apiKey ? '正在等待模型列表…' : '填写 API Key 后获取';
                 model.appendChild(placeholder); model.disabled = true;
             } else {
-                config.models.forEach(function (id) {
-                    var option = document.createElement('option'); option.value = id; option.textContent = id; model.appendChild(option);
+                    config.models.forEach(function (id) {
+                    var option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = id + (config.modelMeta && config.modelMeta[id] && config.modelMeta[id].free ? ' · Free' : '');
+                    model.appendChild(option);
                 });
                 model.value = config.model || config.models[0]; model.disabled = false;
             }
@@ -986,7 +1035,7 @@
         document.querySelectorAll('.pta-provider-card').forEach(function (card) { card.addEventListener('click', function () { saveSettings(); state.provider = card.dataset.provider; syncUI(); if (state.configs[state.provider].apiKey && !state.configs[state.provider].models.length) loadModels(state.provider, true); }); });
         document.getElementById('pta-api-key').addEventListener('input', function () {
             var value = this.value, config = state.configs[state.provider];
-            if (value.trim() !== config.apiKey) { config.models = []; config.model = ''; config.modelError = ''; syncUI(); this.value = value; }
+            if (value.trim() !== config.apiKey) { config.models = []; config.model = ''; config.modelMeta = {}; config.modelError = ''; syncUI(); this.value = value; }
             clearTimeout(apiKeyTimer);
             var providerAtInput = state.provider;
             apiKeyTimer = setTimeout(function () {
@@ -1007,7 +1056,7 @@
     function saveSettings() {
         var config = state.configs[state.provider];
         var nextKey = (document.getElementById('pta-api-key').value || '').trim();
-        if (nextKey !== config.apiKey) { config.models = []; config.model = ''; config.modelError = ''; }
+        if (nextKey !== config.apiKey) { config.models = []; config.model = ''; config.modelMeta = {}; config.modelError = ''; }
         config.apiKey = nextKey;
         config.model = (document.getElementById('pta-model').value || '').trim();
         config.images = !!document.getElementById('pta-images').checked;
@@ -1021,8 +1070,10 @@
         var config = state.configs[provider];
         if (!config || !config.apiKey) { if (!silent) toast('请先填写 API Key'); return; }
         config.modelsLoading = true; config.modelError = ''; syncUI();
-        requestModels(provider).then(function (models) {
+        requestModels(provider).then(function (result) {
+            var models = result.ids || [];
             config.models = models;
+            config.modelMeta = result.meta || {};
             if (!config.model || models.indexOf(config.model) < 0) config.model = models[0];
             config.modelsLoading = false; config.modelError = ''; saveState();
             if (provider === state.provider) syncUI();
