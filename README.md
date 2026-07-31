@@ -59,13 +59,13 @@
 ## 安装
 
 1. 安装 Tampermonkey 浏览器扩展。
-2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver 脚本](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
+2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver Pro-1.5.0.user.js](./PTA%20Auto%20Solver%20Pro-1.5.0.user.js)。
 3. 在 Tampermonkey 页面确认安装或更新脚本。
 4. 刷新 PTA 页面。
 
 如果浏览器没有自动进入安装页面，也可以打开 Tampermonkey 控制面板，选择“添加新脚本”或“导入”，然后导入 `.user.js` 文件。
 
-脚本元数据已经配置 `@updateURL` 和 `@downloadURL`。后续发布新版本时，Tampermonkey 可以从仓库的原始脚本地址检查更新。
+脚本元数据已经配置 `@updateURL` 和 `@downloadURL`。旧版文件仍保留为兼容入口，已安装用户会自动切换到 1.5.0 文件；后续发布新版本时，Tampermonkey 可以从仓库的原始脚本地址检查更新。
 
 ## GitHub Pages
 
