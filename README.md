@@ -2,7 +2,7 @@
 
 一个面向 [拼题 A（PTA）](https://pintia.cn/) 的 Tampermonkey AI 辅助答题脚本。
 
-当前版本：`1.4.1`  
+当前版本：`1.4.2`  
 作者：`NeuronCState`
 
 ## 功能
@@ -12,6 +12,7 @@
 - DeepSeek 默认关闭图片输入，MiMo 默认开启图片输入。
 - 首页直接选择编程语言，支持自动检测、C、C++、Python、Java、Pascal。
 - 自定义黑白玻璃风格面板和统一下拉框动画。
+- “跳过已作答”“连续答题”和图片输入均使用横向胶囊按钮。
 - 一个按钮同时切换 PTA 页面和脚本面板的深色/浅色模式。
 - 显示真实题目总进度，例如 `1 / 30`、`2 / 30`。
 - 编程题和函数题支持：
@@ -24,6 +25,20 @@
   7. 开启“连续答题”且本题满分时进入下一题。
 - 可选择跳过已经填写过答案的题目。
 - 错误会显示在面板状态和运行记录中，不依赖无法捕获的弹窗。
+
+## 界面预览
+
+### 主页面
+
+![PTA Auto Solver 主页面](./screenshots/main-page.png)
+
+### 深色模式主页面
+
+![PTA Auto Solver 深色模式](./screenshots/dark-mode-main-page.png)
+
+### 模型配置页面
+
+![PTA Auto Solver 模型配置](./screenshots/model-settings.png)
 
 ## 支持题型
 
@@ -41,7 +56,7 @@
 ## 安装
 
 1. 安装 Tampermonkey 浏览器扩展。
-2. 打开脚本文件 [PTA Auto Solver Pro-1.4.1.user.js](./PTA%20Auto%20Solver%20Pro-1.4.1.user.js)。
+2. 打开脚本文件 [PTA Auto Solver Pro-1.4.2.user.js](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
 3. 在 Tampermonkey 页面确认安装或更新脚本。
 4. 刷新 PTA 页面。
 
