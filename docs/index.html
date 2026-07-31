@@ -7,11 +7,11 @@
   <meta name="description" content="PTA Auto Solver 是一个轻量、清晰的 Tampermonkey AI 辅助答题脚本，支持 DeepSeek、MiMo 与动态模型选择。">
   <meta name="theme-color" content="#0b0b0d">
   <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260731-model-orbits">
 </head>
 <body>
   <div class="page-noise" aria-hidden="true"></div>
-  <header class="nav shell">
+  <header class="nav shell" data-reveal>
     <a class="brand" href="./" aria-label="PTA Auto Solver 首页">
       <span class="brand-mark">P</span>
       <span>PTA Auto Solver</span>
@@ -20,13 +20,12 @@
       <a href="#features">功能</a>
       <a href="#preview">预览</a>
       <a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a>
-      <button id="theme-toggle" class="icon-button" type="button" aria-label="切换主题">☾</button>
     </nav>
   </header>
 
   <main>
     <section class="hero shell">
-      <div class="hero-copy">
+      <div class="hero-copy" data-reveal>
         <p class="eyebrow"><span class="status-dot"></span> OPEN SOURCE · v1.5.0</p>
         <h1>让 PTA 答题<br><em>清晰、可控、少一点重复。</em></h1>
         <p class="hero-text">一个面向拼题 A 的 Tampermonkey AI 辅助答题脚本。动态读取可用模型，提取真实题干，写入编辑器并等待评分。</p>
@@ -36,9 +35,30 @@
         </div>
         <p class="microcopy">安装 Tampermonkey 后点击即可导入。脚本会通过更新地址自动检查新版本。</p>
       </div>
-      <div class="hero-card glass-card" aria-label="产品摘要">
+      <div class="hero-card glass-card" aria-label="产品摘要" data-reveal>
         <div class="card-topline"><span>PTA / EXAM</span><span class="card-live">● READY</span></div>
-        <div class="hero-orbit"><span class="orbit-core">AI</span><span class="orbit-line orbit-line-a"></span><span class="orbit-line orbit-line-b"></span><span class="orbit-node orbit-node-a">DS</span><span class="orbit-node orbit-node-b">M</span></div>
+        <div class="model-system" aria-label="支持的 AI 模型">
+          <div class="model-track model-track-outer">
+            <span class="model-sphere" style="--angle:0deg;--radius:96px"><span>Deepseek</span></span>
+            <span class="model-sphere" style="--angle:72deg;--radius:96px"><span>Mimo</span></span>
+            <span class="model-sphere" style="--angle:144deg;--radius:96px"><span>Qwen</span></span>
+            <span class="model-sphere" style="--angle:216deg;--radius:96px"><span>Gemini</span></span>
+            <span class="model-sphere" style="--angle:288deg;--radius:96px"><span>ChatGPT</span></span>
+          </div>
+          <div class="model-track model-track-middle">
+            <span class="model-sphere" style="--angle:28deg;--radius:68px"><span>Claude</span></span>
+            <span class="model-sphere" style="--angle:100deg;--radius:68px"><span>step</span></span>
+            <span class="model-sphere" style="--angle:172deg;--radius:68px"><span>GLM</span></span>
+            <span class="model-sphere" style="--angle:244deg;--radius:68px"><span>kimi</span></span>
+            <span class="model-sphere" style="--angle:316deg;--radius:68px"><span>grok</span></span>
+          </div>
+          <div class="model-track model-track-inner">
+            <span class="model-sphere" style="--angle:55deg;--radius:42px"><span>nemotron</span></span>
+            <span class="model-sphere" style="--angle:175deg;--radius:42px"><span>Muse Spark</span></span>
+            <span class="model-sphere" style="--angle:295deg;--radius:42px"><span>minimax</span></span>
+          </div>
+          <span class="orbit-core">AI</span>
+        </div>
         <div class="card-stat"><strong>1 → N</strong><span>从当前题目到连续答题</span></div>
         <div class="card-stat"><strong>20 / 20</strong><span>等待真实 PTA 评分</span></div>
         <div class="card-footer"><span>by NeuronCState</span><span>GLASS / MONO</span></div>
@@ -46,25 +66,25 @@
     </section>
 
     <section id="features" class="section shell">
-      <div class="section-heading"><p class="eyebrow">WHAT IT DOES</p><h2>把重复操作交给流程，<br>把控制权留给你。</h2></div>
+      <div class="section-heading" data-reveal><p class="eyebrow">WHAT IT DOES</p><h2>把重复操作交给流程，<br>把控制权留给你。</h2></div>
       <div class="feature-grid">
-        <article class="feature-card glass-card"><span class="feature-index">01</span><h3>动态模型</h3><p>填写 API Key 后读取供应商真实模型列表，手动选择，不把模型名称写死在脚本里；OpenRouter 的 Free 模型自动置顶。</p><span class="feature-tag">DEEPSEEK / MIMO / OPENROUTER</span></article>
-        <article class="feature-card glass-card"><span class="feature-index">02</span><h3>真实评分闭环</h3><p>提交本题作答，等待程序打分；不是满分时最多自动重答一次，满分后才进入下一题。</p><span class="feature-tag">SUBMIT → SCORE → NEXT</span></article>
-        <article class="feature-card glass-card"><span class="feature-index">03</span><h3>可见的控制</h3><p>进度、运行记录、Key 错误和模型错误都显示在面板内。首页直接选择编程语言。</p><span class="feature-tag">VISIBLE STATE</span></article>
+        <article class="feature-card glass-card" data-reveal><span class="feature-index">01</span><h3>动态模型</h3><p>填写 API Key 后读取供应商真实模型列表，手动选择，不把模型名称写死在脚本里；OpenRouter 的 Free 模型自动置顶。</p><span class="feature-tag">DEEPSEEK / MIMO / OPENROUTER</span></article>
+        <article class="feature-card glass-card" data-reveal><span class="feature-index">02</span><h3>真实评分闭环</h3><p>提交本题作答，等待程序打分；不是满分时最多自动重答一次，满分后才进入下一题。</p><span class="feature-tag">SUBMIT → SCORE → NEXT</span></article>
+        <article class="feature-card glass-card" data-reveal><span class="feature-index">03</span><h3>可见的控制</h3><p>进度、运行记录、Key 错误和模型错误都显示在面板内。首页直接选择编程语言。</p><span class="feature-tag">VISIBLE STATE</span></article>
       </div>
     </section>
 
     <section id="preview" class="section shell preview-section">
-      <div class="section-heading inline-heading"><div><p class="eyebrow">INTERFACE</p><h2>黑白玻璃，安静但不隐身。</h2></div><a class="text-link" href="https://github.com/NeuronCState/PTA-Auto-Solver/tree/main/screenshots" target="_blank" rel="noreferrer">查看全部截图 ↗</a></div>
+      <div class="section-heading inline-heading" data-reveal><div><p class="eyebrow">INTERFACE</p><h2>黑白玻璃，安静但不隐身。</h2></div><a class="text-link" href="https://github.com/NeuronCState/PTA-Auto-Solver/tree/main/screenshots" target="_blank" rel="noreferrer">查看全部截图 ↗</a></div>
       <div class="preview-grid">
-        <figure class="preview-card preview-card-large"><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/main-page.png" alt="PTA Auto Solver 主页面" loading="lazy"><figcaption><span>MAIN PANEL</span><strong>首页与进度</strong></figcaption></figure>
-        <figure class="preview-card"><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/dark-mode-main-page.png" alt="PTA Auto Solver 深色模式" loading="lazy"><figcaption><span>DARK MODE</span><strong>深色 / 浅色同步</strong></figcaption></figure>
-        <figure class="preview-card"><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/model-settings.png" alt="PTA Auto Solver 模型配置" loading="lazy"><figcaption><span>MODEL SETTINGS</span><strong>模型与图片输入</strong></figcaption></figure>
+        <figure class="preview-card preview-card-large" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/main-page.png?v=20260731-2" alt="PTA Auto Solver 主页面" loading="lazy"><figcaption><span>MAIN PANEL</span><strong>首页与进度</strong></figcaption></figure>
+        <figure class="preview-card" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/dark-mode-main-page.png?v=20260731-2" alt="PTA Auto Solver 深色模式" loading="lazy"><figcaption><span>DARK MODE</span><strong>深色 / 浅色同步</strong></figcaption></figure>
+        <figure class="preview-card" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/model-settings.png?v=20260731-2" alt="PTA Auto Solver 模型配置" loading="lazy"><figcaption><span>MODEL SETTINGS</span><strong>模型与图片输入</strong></figcaption></figure>
       </div>
     </section>
 
     <section class="section shell setup-section">
-      <div class="setup-panel glass-card">
+      <div class="setup-panel glass-card" data-reveal>
         <div><p class="eyebrow">QUICK START</p><h2>三步开始。</h2></div>
         <div class="steps"><div class="step"><b>01</b><span>安装 Tampermonkey</span></div><div class="step"><b>02</b><span>填写 Key，选择模型</span></div><div class="step"><b>03</b><span>打开 PTA 题目并开始</span></div></div>
         <a class="button button-dark" href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js">获取 v1.5.0 <span>↗</span></a>
@@ -75,12 +95,21 @@
   <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues" target="_blank" rel="noreferrer">反馈问题 ↗</a></footer>
   <script>
     const root = document.documentElement;
-    const toggle = document.getElementById('theme-toggle');
-    const stored = localStorage.getItem('pta-site-theme');
-    if (stored === 'dark') root.dataset.theme = 'dark';
-    function syncTheme() { const dark = root.dataset.theme === 'dark'; toggle.textContent = dark ? '☀' : '☾'; toggle.setAttribute('aria-label', dark ? '切换浅色' : '切换深色'); }
-    toggle.addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('pta-site-theme', root.dataset.theme); syncTheme(); });
-    syncTheme();
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      root.classList.add('motion-ready');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.14 });
+      document.querySelectorAll('[data-reveal]').forEach((element, index) => {
+        element.style.setProperty('--reveal-delay', `${Math.min(index % 4, 3) * 70}ms`);
+        observer.observe(element);
+      });
+    }
   </script>
 </body>
 </html>
