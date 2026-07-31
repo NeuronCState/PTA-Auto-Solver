@@ -475,6 +475,15 @@
         return prefix + ' HTTP ' + status + '：' + serverMessage;
     }
 
+    function parseJsonResponse(response, label) {
+        var raw = String(response && response.responseText || '').replace(/^\uFEFF/, '').trim();
+        try { return JSON.parse(raw || '{}'); } catch (e) {
+            var status = response && response.status ? '（HTTP ' + response.status + '）' : '';
+            var preview = raw.replace(/\s+/g, ' ').slice(0, 180);
+            throw new Error(PROVIDERS[state.provider].name + ' ' + label + '不是有效 JSON' + status + (preview ? '：' + preview : '：空响应'));
+        }
+    }
+
     function requestModels(provider) {
         var config = state.configs[provider];
         return new Promise(function (resolve, reject) {
@@ -483,7 +492,7 @@
                 method: 'GET', url: modelsEndpoint(provider), headers: authHeaders(provider, config.apiKey, 'GET'), timeout: 30000,
                 onload: function (response) {
                     var data;
-                    try { data = JSON.parse(response.responseText || '{}'); } catch (e) { reject(new Error('模型列表响应不是有效 JSON')); return; }
+                    try { data = parseJsonResponse(response, '模型列表响应'); } catch (error) { reject(error); return; }
                     if (response.status < 200 || response.status >= 300) {
                         reject(new Error(apiError('获取模型失败', response.status, data))); return;
                     }
@@ -550,7 +559,7 @@
                 data: JSON.stringify(body), timeout: 120000,
                 onload: function (response) {
                     var data;
-                    try { data = JSON.parse(response.responseText || '{}'); } catch (e) { reject(new Error('响应不是有效 JSON')); return; }
+                    try { data = parseJsonResponse(response, 'AI 响应'); } catch (error) { reject(error); return; }
                     if (response.status < 200 || response.status >= 300) {
                         reject(new Error(apiError('AI 请求失败', response.status, data))); return;
                     }
@@ -779,7 +788,7 @@
             }
             var code = getEditorDoc(editor);
             var answer = await solveOne(type, {
-                description: question.desc || questionText(problem), code: code,
+                description: (question.desc || questionText(problem)) + (attempts ? '\n\n【重试要求】上一次提交未获得满分，请重新检查边界条件、输入输出和代码逻辑，不要机械重复上一次答案。' : ''), code: code,
                 interfaceCode: question.interfaceCode,
                 supportCode: question.supportCode,
                 frameworkCode: question.frameworkCode,
