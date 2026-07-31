@@ -21,19 +21,15 @@
       <text x="28" y="43" font-size="22" font-weight="800">解题流程</text>
       <text x="28" y="74" font-size="18" fill="#bdbdb9">从题目到可检查的结果</text>
     </g>
-    <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="18" font-weight="700">
-      <rect x="28" y="98" width="102" height="42" rx="12" fill="#ffffff"/>
-      <text x="50" y="126" fill="#111111">读取题目</text>
-      <path d="M142 119h25" stroke="#8f8f8c" stroke-width="3"/>
-      <path d="M162 113l7 6-7 6" fill="none" stroke="#8f8f8c" stroke-width="3"/>
-      <rect x="178" y="98" width="126" height="42" rx="12" fill="#ffffff"/>
-      <text x="198" y="126" fill="#111111">请求模型</text>
-      <rect x="28" y="160" width="112" height="42" rx="12" fill="#292929" stroke="#747470"/>
-      <text x="48" y="188" fill="#ffffff">写入编辑器</text>
-      <path d="M152 181h25" stroke="#8f8f8c" stroke-width="3"/>
-      <path d="M172 175l7 6-7 6" fill="none" stroke="#8f8f8c" stroke-width="3"/>
-      <rect x="188" y="160" width="116" height="42" rx="12" fill="#ffffff"/>
-      <text x="210" y="188" fill="#111111">等待评分</text>
+    <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="17" font-weight="700">
+      <rect x="28" y="98" width="136" height="42" rx="12" fill="#ffffff"/>
+      <text x="50" y="125" fill="#111111">读取题目</text>
+      <rect x="180" y="98" width="136" height="42" rx="12" fill="#ffffff"/>
+      <text x="202" y="125" fill="#111111">请求模型</text>
+      <rect x="28" y="156" width="136" height="42" rx="12" fill="#ffffff"/>
+      <text x="50" y="183" fill="#111111">写入答案</text>
+      <rect x="180" y="156" width="136" height="42" rx="12" fill="#ffffff"/>
+      <text x="202" y="183" fill="#111111">读取评分</text>
     </g>
   </g>
   <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" fill="#666662">
