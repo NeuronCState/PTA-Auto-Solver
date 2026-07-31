@@ -5,6 +5,8 @@
 当前版本：`1.4.2`  
 作者：`NeuronCState`
 
+项目主页：[neuroncstate.github.io/PTA-Auto-Solver](https://neuroncstate.github.io/PTA-Auto-Solver/)
+
 ## 功能
 
 - 支持 DeepSeek 和 MiMo 两个 AI 供应商。
@@ -56,11 +58,21 @@
 ## 安装
 
 1. 安装 Tampermonkey 浏览器扩展。
-2. 打开脚本文件 [PTA Auto Solver Pro-1.4.2.user.js](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
+2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver Pro-1.4.2.user.js](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
 3. 在 Tampermonkey 页面确认安装或更新脚本。
 4. 刷新 PTA 页面。
 
 如果浏览器没有自动进入安装页面，也可以打开 Tampermonkey 控制面板，选择“添加新脚本”或“导入”，然后导入 `.user.js` 文件。
+
+脚本元数据已经配置 `@updateURL` 和 `@downloadURL`。后续发布新版本时，Tampermonkey 可以从仓库的原始脚本地址检查更新。
+
+## GitHub Pages
+
+`docs/` 是项目主页的静态源文件，发布后地址为：
+
+<https://neuroncstate.github.io/PTA-Auto-Solver/>
+
+仓库设置中选择 **Settings → Pages → Deploy from a branch → `main` / `/docs`** 即可启用。页面包含安装入口、功能介绍、截图和 GitHub 链接；`robots.txt` 与 `sitemap.xml` 也已准备好，搜索引擎收录需要等待一段时间，不能保证立即出现在搜索结果中。
 
 ## 使用方法
 
