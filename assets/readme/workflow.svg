@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
+  <title id="title">PTA Auto Solver 解题流程</title>
+  <desc id="desc">四个步骤：打开 PTA 题目，选择模型并开始解题，脚本提取题干并写入答案，提交后读取评分；满分时可选择继续下一题。</desc>
+  <rect width="1200" height="330" rx="28" fill="#111111"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <text x="60" y="70" fill="#ffffff" font-size="38" font-weight="800">把重复流程留给脚本，把判断留给你</text>
+    <text x="60" y="104" fill="#b8b8b4" font-size="20">每一步都在 PTA 页面中完成；自动提交会产生真实记录。</text>
+  </g>
+  <g transform="translate(60 148)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <g>
+      <rect width="235" height="128" rx="18" fill="#f5f5f2"/>
+      <text x="24" y="37" fill="#6b6b67" font-size="17" font-weight="700">01</text>
+      <text x="24" y="75" fill="#111111" font-size="25" font-weight="800">进入具体题目</text>
+      <text x="24" y="104" fill="#555552" font-size="18">脚本识别当前题号和总进度</text>
+    </g>
+    <path d="M252 64h46" stroke="#777773" stroke-width="3"/>
+    <path d="M291 57l8 7-8 7" fill="none" stroke="#777773" stroke-width="3"/>
+    <g transform="translate(315)">
+      <rect width="235" height="128" rx="18" fill="#262626" stroke="#555552"/>
+      <text x="24" y="37" fill="#b8b8b4" font-size="17" font-weight="700">02</text>
+      <text x="24" y="75" fill="#ffffff" font-size="25" font-weight="800">选择模型并开始</text>
+      <text x="24" y="104" fill="#cacac6" font-size="18">API Key 存在当前浏览器</text>
+    </g>
+    <path d="M567 64h46" stroke="#777773" stroke-width="3"/>
+    <path d="M606 57l8 7-8 7" fill="none" stroke="#777773" stroke-width="3"/>
+    <g transform="translate(630)">
+      <rect width="235" height="128" rx="18" fill="#f5f5f2"/>
+      <text x="24" y="37" fill="#6b6b67" font-size="17" font-weight="700">03</text>
+      <text x="24" y="75" fill="#111111" font-size="25" font-weight="800">提取并写入答案</text>
+      <text x="24" y="104" fill="#555552" font-size="18">支持题干、样例与代码框架</text>
+    </g>
+    <path d="M882 64h46" stroke="#777773" stroke-width="3"/>
+    <path d="M921 57l8 7-8 7" fill="none" stroke="#777773" stroke-width="3"/>
+    <g transform="translate(945)">
+      <rect width="195" height="128" rx="18" fill="#262626" stroke="#555552"/>
+      <text x="24" y="37" fill="#b8b8b4" font-size="17" font-weight="700">04</text>
+      <text x="24" y="75" fill="#ffffff" font-size="25" font-weight="800">提交并读分</text>
+      <text x="24" y="104" fill="#cacac6" font-size="18">满分后可继续下一题</text>
+    </g>
+  </g>
+</svg>
