@@ -2,7 +2,7 @@
 
 一个面向 [拼题 A（PTA）](https://pintia.cn/) 的 Tampermonkey AI 辅助答题脚本。
 
-当前版本：`1.4.2`  
+当前版本：`1.5.0`  
 作者：`NeuronCState`
 
 项目主页：[neuroncstate.github.io/PTA-Auto-Solver](https://neuroncstate.github.io/PTA-Auto-Solver/)
@@ -10,6 +10,7 @@
 ## 功能
 
 - 支持 DeepSeek 和 MiMo 两个 AI 供应商。
+- 接入 OpenRouter，自动读取多供应商模型，并将 Free 模型排在下拉列表最上方。
 - 填写 API Key 后自动读取供应商模型列表，可手动选择模型。
 - DeepSeek 默认关闭图片输入，MiMo 默认开启图片输入。
 - 首页直接选择编程语言，支持自动检测、C、C++、Python、Java、Pascal。
@@ -58,7 +59,7 @@
 ## 安装
 
 1. 安装 Tampermonkey 浏览器扩展。
-2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver Pro-1.4.2.user.js](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
+2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/)，点击“安装 / 更新脚本”；也可以直接打开 [PTA Auto Solver 脚本](./PTA%20Auto%20Solver%20Pro-1.4.2.user.js)。
 3. 在 Tampermonkey 页面确认安装或更新脚本。
 4. 刷新 PTA 页面。
 
@@ -127,8 +128,9 @@ API Key 只保存在当前浏览器本地配置中。脚本不会把 Key 上传�
 | --- | --- | --- |
 | DeepSeek | 关闭 | Bearer Token |
 | MiMo | 开启 | `api-key` 请求头 |
+| OpenRouter | 关闭 | Bearer Token |
 
-模型不会固定写死，脚本会请求供应商的 `/models` 接口并显示返回的可用模型。
+模型不会固定写死，脚本会请求供应商的 `/models` 接口并显示返回的可用模型。OpenRouter 返回的 Free 模型会优先显示，并在名称后标注 `· Free`。
 
 ## 常见问题
 
@@ -164,7 +166,8 @@ API Key 只保存在当前浏览器本地配置中。脚本不会把 Key 上传�
 - `GM_xmlhttpRequest`：请求 AI 供应商模型列表和聊天接口；
 - `GM_setClipboard`：当编辑器无法直接写入时，将答案复制到剪贴板；
 - `@connect api.deepseek.com`：访问 DeepSeek API；
-- `@connect api.xiaomimimo.com`：访问 MiMo API。
+- `@connect api.xiaomimimo.com`：访问 MiMo API；
+- `@connect openrouter.ai`：访问 OpenRouter 模型列表和聊天接口。
 
 脚本只匹配 `https://pintia.cn/*` 页面。
 
