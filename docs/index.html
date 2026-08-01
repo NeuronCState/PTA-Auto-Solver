@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b0b0d">
   <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/">
-  <link rel="stylesheet" href="styles.css?v=20260801-five-ring-atom">
+  <link rel="stylesheet" href="styles.css?v=20260801-webgl-r185">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -64,6 +64,11 @@
         <div class="card-topline"><span>PTA / EXAM</span><span class="card-live">● READY</span></div>
         <div class="model-system">
           <canvas id="ai-orbit-scene" aria-label="AI 模型供应商三维轨道动画"></canvas>
+          <p class="webgl-status" aria-live="polite">
+            <span data-state="unsupported">此浏览器未启用 WebGL 2</span>
+            <span data-state="lost">图形上下文正在恢复…</span>
+            <span data-state="error">WebGL 渲染已暂停，请刷新页面</span>
+          </p>
         </div>
       </div>
     </section>
@@ -124,7 +129,7 @@
     }
   </script>
   <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
 
     const TAU = Math.PI * 2;
     const MODELS = [
@@ -142,11 +147,42 @@
     const TRAIL = 20;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canvas = document.getElementById('ai-orbit-scene');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    // GitHub Pages / Safari 部分 WebGL 实现会让 getProgramInfoLog 返回 null。
-    // 这是展示型动画，不需要把 Three.js 的 shader 调试日志写入控制台。
-    renderer.debug.checkShaderErrors = false;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const contextAttributes = {
+      alpha: true,
+      antialias: true,
+      depth: true,
+      stencil: false,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: false,
+      powerPreference: 'low-power',
+      failIfMajorPerformanceCaveat: false
+    };
+    const gl = canvas.getContext('webgl2', contextAttributes);
+    const liveLabel = canvas.closest('.hero-card')?.querySelector('.card-live');
+    const stateLabels = {
+      ready: '● READY',
+      lost: '● RESTORING',
+      unsupported: '● WEBGL 2 REQUIRED',
+      error: '● PAUSED'
+    };
+    const setWebglState = (state) => {
+      canvas.dataset.webglState = state;
+      if (liveLabel) liveLabel.textContent = stateLabels[state];
+    };
+
+    if (!gl) {
+      setWebglState('unsupported');
+      canvas.setAttribute('aria-label', '当前浏览器未启用 WebGL 2，无法显示 AI 模型轨道');
+    } else {
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      context: gl,
+      ...contextAttributes
+    });
+    const getPixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(getPixelRatio());
+    renderer.setClearColor(0x000000, 0);
+    setWebglState('ready');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
     const targetCameraZ = 40;
@@ -154,15 +190,11 @@
     const atom = new THREE.Group();
     atom.rotation.set(0.42, -0.55, 0);
     scene.add(atom);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.65));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.3);
-    keyLight.position.set(7, 10, 11);
-    scene.add(keyLight);
 
     const toTexture = (surface) => {
       const texture = new THREE.CanvasTexture(surface);
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = 4;
+      texture.anisotropy = Math.min(2, renderer.capabilities.getMaxAnisotropy());
       return texture;
     };
     const makeBadge = (name) => {
@@ -212,7 +244,7 @@
 
     const core = new THREE.Mesh(
       new THREE.SphereGeometry(2.35, 48, 32),
-      new THREE.MeshStandardMaterial({ color: 0x111113, roughness: 0.3, metalness: 0.08 })
+      new THREE.MeshBasicMaterial({ color: 0x111113 })
     );
     atom.add(core);
     const coreLabel = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -282,13 +314,27 @@
     canvas.dataset.ringCount = String(rings.length);
     canvas.dataset.modelCount = String(models.length);
 
+    let renderWidth = 0;
+    let renderHeight = 0;
+    let renderPixelRatio = getPixelRatio();
     const resize = () => {
-      const bounds = canvas.getBoundingClientRect();
-      renderer.setSize(bounds.width, bounds.height, false);
-      camera.aspect = bounds.width / bounds.height;
+      const width = Math.round(canvas.clientWidth);
+      const height = Math.round(canvas.clientHeight);
+      const pixelRatio = getPixelRatio();
+      if (width < 2 || height < 2) return;
+      if (width === renderWidth && height === renderHeight && pixelRatio === renderPixelRatio) return;
+      renderWidth = width;
+      renderHeight = height;
+      renderPixelRatio = pixelRatio;
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
-    const resizeObserver = new ResizeObserver(resize);
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      if (reduced) startAnimation();
+    });
     resizeObserver.observe(canvas);
     resize();
 
@@ -314,6 +360,7 @@
       atom.rotation.x = THREE.MathUtils.clamp(atom.rotation.x + dy * 0.0055, -1.35, 1.35);
       velocityY = dx * 0.0055;
       velocityX = dy * 0.0055;
+      if (reduced) startAnimation();
     });
     const stopDragging = () => {
       dragging = false;
@@ -324,16 +371,30 @@
     canvas.addEventListener('dblclick', () => {
       atom.rotation.set(0.42, -0.55, 0);
       velocityX = velocityY = 0;
+      if (reduced) startAnimation();
     });
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     const motionScale = reduced ? 0 : 1;
     const temporary = new THREE.Vector3();
-    const animate = () => {
-      requestAnimationFrame(animate);
-      const rawDelta = Math.min(clock.getDelta(), 0.05);
+    let animationFrame = 0;
+    let running = false;
+    let contextLost = false;
+    let disposed = false;
+
+    const stopAnimation = () => {
+      running = false;
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = 0;
+    };
+
+    const animate = (timestamp) => {
+      if (!running || contextLost || disposed || document.hidden) return;
+      timer.update(timestamp);
+      const rawDelta = Math.min(timer.getDelta(), 0.05);
       const delta = rawDelta * motionScale;
-      const elapsed = clock.elapsedTime;
+      const elapsed = timer.getElapsed();
       camera.position.z += (targetCameraZ - camera.position.z) * Math.min(1, rawDelta * 4);
       if (!dragging && motionScale) {
         velocityX *= 0.93;
@@ -359,9 +420,57 @@
         positions.set(model.history);
         model.trail.geometry.attributes.position.needsUpdate = true;
       });
-      renderer.render(scene, camera);
+      try {
+        if (!gl.isContextLost()) renderer.render(scene, camera);
+      } catch (error) {
+        setWebglState('error');
+        stopAnimation();
+        console.error('PTA Auto Solver WebGL render paused:', error);
+        return;
+      }
+      if (running && !reduced) animationFrame = requestAnimationFrame(animate);
+      else running = false;
     };
-    animate();
+
+    const startAnimation = () => {
+      if (running || contextLost || disposed || document.hidden) return;
+      running = true;
+      timer.reset();
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      contextLost = true;
+      setWebglState('lost');
+      stopAnimation();
+    }, false);
+    canvas.addEventListener('webglcontextrestored', () => {
+      contextLost = false;
+      setWebglState('ready');
+      renderWidth = 0;
+      renderHeight = 0;
+      requestAnimationFrame(() => {
+        resize();
+        startAnimation();
+      });
+    }, false);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAnimation();
+      else startAnimation();
+    });
+    window.addEventListener('pagehide', (event) => {
+      stopAnimation();
+      if (!event.persisted && !disposed) {
+        disposed = true;
+        resizeObserver.disconnect();
+        timer.dispose();
+        if (!gl.isContextLost()) renderer.dispose();
+      }
+    });
+    window.addEventListener('pageshow', () => startAnimation());
+    startAnimation();
+    }
   </script>
 </body>
 </html>
