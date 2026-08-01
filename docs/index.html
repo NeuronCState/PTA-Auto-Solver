@@ -3,22 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PTA Auto Solver · NeuronCState</title>
-  <meta name="description" content="PTA Auto Solver 是一个轻量、清晰的 Tampermonkey AI 辅助答题脚本，支持 DeepSeek、MiMo 与动态模型选择。">
+  <title>PTA 自动刷题脚本 · PTA 自动答题 AI 工具 | PTA Auto Solver</title>
+  <meta name="description" content="PTA Auto Solver 是面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本：读取题目、生成作答建议、写入编辑器并跟踪评分。支持 DeepSeek、MiMo 与动态模型选择。">
+  <meta name="keywords" content="PTA自动刷题, PTA脚本, PTA自动答题, PTA AI答题, 拼题A脚本, Tampermonkey PTA脚本, PTA Auto Solver">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="PTA 自动刷题脚本 · PTA 自动答题 AI 工具 | PTA Auto Solver">
+  <meta property="og:description" content="面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本：读取题目、生成作答建议、写入编辑器并跟踪评分。">
+  <meta property="og:url" content="https://neuroncstate.github.io/PTA-Auto-Solver/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/main-page.png">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b0b0d">
   <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/">
-  <link rel="stylesheet" href="styles.css?v=20260731-model-orbits">
+  <link rel="stylesheet" href="styles.css?v=20260801-five-ring-atom">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "PTA Auto Solver",
+      "applicationCategory": "BrowserApplication",
+      "operatingSystem": "Chrome, Edge, Firefox",
+      "description": "面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本，可读取题目、生成作答建议、写入编辑器并跟踪评分。",
+      "url": "https://neuroncstate.github.io/PTA-Auto-Solver/",
+      "downloadUrl": "https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js",
+      "softwareVersion": "1.5.0",
+      "inLanguage": "zh-CN",
+      "author": { "@type": "Person", "name": "NeuronCState" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+    }
+  </script>
 </head>
 <body>
   <div class="page-noise" aria-hidden="true"></div>
   <header class="nav shell" data-reveal>
     <a class="brand" href="./" aria-label="PTA Auto Solver 首页">
-      <span class="brand-mark">P</span>
       <span>PTA Auto Solver</span>
     </a>
     <nav class="nav-links" aria-label="主导航">
       <a href="#features">功能</a>
       <a href="#preview">预览</a>
+      <a href="#faq">说明</a>
       <a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a>
     </nav>
   </header>
@@ -27,41 +52,19 @@
     <section class="hero shell">
       <div class="hero-copy" data-reveal>
         <p class="eyebrow"><span class="status-dot"></span> OPEN SOURCE · v1.5.0</p>
-        <h1>让 PTA 答题<br><em>清晰、可控、少一点重复。</em></h1>
-        <p class="hero-text">一个面向拼题 A 的 Tampermonkey AI 辅助答题脚本。动态读取可用模型，提取真实题干，写入编辑器并等待评分。</p>
+        <h1>PTA 自动答题脚本，<br><em>清晰、可控、少一点重复。</em></h1>
+        <p class="hero-text">PTA Auto Solver 是一个面向拼题 A 的 Tampermonkey PTA 脚本。它可动态读取模型、提取真实题干、生成作答建议、写入编辑器并等待评分。</p>
         <div class="hero-actions">
           <a class="button button-dark" href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js">安装 / 更新脚本 <span>↗</span></a>
           <a class="button button-light" href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">查看源代码</a>
         </div>
         <p class="microcopy">安装 Tampermonkey 后点击即可导入。脚本会通过更新地址自动检查新版本。</p>
       </div>
-      <div class="hero-card glass-card" aria-label="产品摘要" data-reveal>
+      <div class="hero-card glass-card" aria-label="PTA AI 模型轨道" data-reveal>
         <div class="card-topline"><span>PTA / EXAM</span><span class="card-live">● READY</span></div>
-        <div class="model-system" aria-label="支持的 AI 模型">
-          <div class="model-track model-track-outer">
-            <span class="model-sphere" style="--angle:0deg;--radius:96px"><span>Deepseek</span></span>
-            <span class="model-sphere" style="--angle:72deg;--radius:96px"><span>Mimo</span></span>
-            <span class="model-sphere" style="--angle:144deg;--radius:96px"><span>Qwen</span></span>
-            <span class="model-sphere" style="--angle:216deg;--radius:96px"><span>Gemini</span></span>
-            <span class="model-sphere" style="--angle:288deg;--radius:96px"><span>ChatGPT</span></span>
-          </div>
-          <div class="model-track model-track-middle">
-            <span class="model-sphere" style="--angle:28deg;--radius:68px"><span>Claude</span></span>
-            <span class="model-sphere" style="--angle:100deg;--radius:68px"><span>step</span></span>
-            <span class="model-sphere" style="--angle:172deg;--radius:68px"><span>GLM</span></span>
-            <span class="model-sphere" style="--angle:244deg;--radius:68px"><span>kimi</span></span>
-            <span class="model-sphere" style="--angle:316deg;--radius:68px"><span>grok</span></span>
-          </div>
-          <div class="model-track model-track-inner">
-            <span class="model-sphere" style="--angle:55deg;--radius:42px"><span>nemotron</span></span>
-            <span class="model-sphere" style="--angle:175deg;--radius:42px"><span>Muse Spark</span></span>
-            <span class="model-sphere" style="--angle:295deg;--radius:42px"><span>minimax</span></span>
-          </div>
-          <span class="orbit-core">AI</span>
+        <div class="model-system">
+          <canvas id="ai-orbit-scene" aria-label="AI 模型供应商三维轨道动画"></canvas>
         </div>
-        <div class="card-stat"><strong>1 → N</strong><span>从当前题目到连续答题</span></div>
-        <div class="card-stat"><strong>20 / 20</strong><span>等待真实 PTA 评分</span></div>
-        <div class="card-footer"><span>by NeuronCState</span><span>GLASS / MONO</span></div>
       </div>
     </section>
 
@@ -80,6 +83,15 @@
         <figure class="preview-card preview-card-large" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/main-page.png?v=20260731-2" alt="PTA Auto Solver 主页面" loading="lazy"><figcaption><span>MAIN PANEL</span><strong>首页与进度</strong></figcaption></figure>
         <figure class="preview-card" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/dark-mode-main-page.png?v=20260731-2" alt="PTA Auto Solver 深色模式" loading="lazy"><figcaption><span>DARK MODE</span><strong>深色 / 浅色同步</strong></figcaption></figure>
         <figure class="preview-card" data-reveal><img src="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/model-settings.png?v=20260731-2" alt="PTA Auto Solver 模型配置" loading="lazy"><figcaption><span>MODEL SETTINGS</span><strong>模型与图片输入</strong></figcaption></figure>
+      </div>
+    </section>
+
+    <section id="faq" class="section shell seo-section">
+      <div class="section-heading" data-reveal><p class="eyebrow">PTA SCRIPT GUIDE</p><h2>关于 PTA 自动刷题、<br>PTA 脚本与自动答题。</h2></div>
+      <div class="seo-grid">
+        <article class="seo-card glass-card" data-reveal><h3>这是 PTA 自动刷题工具吗？</h3><p>PTA Auto Solver 是在拼题 A 页面运行的 PTA 脚本，可把读题、调用 AI、填入编辑器与读取评分等重复步骤串成可见、可停止的流程。每次提交仍会留下 PTA 的真实记录。</p></article>
+        <article class="seo-card glass-card" data-reveal><h3>如何安装 PTA 脚本？</h3><p>先安装 Tampermonkey，再从本页导入 PTA Auto Solver。进入具体题目页后配置自己的 AI API Key，选择模型与语言即可使用。</p></article>
+        <article class="seo-card glass-card" data-reveal><h3>PTA 自动答题如何保持可控？</h3><p>脚本展示题目进度、运行记录和评分结果；首次使用建议关闭连续答题，核对生成的作答与评分后再决定是否继续。请遵守课程、竞赛和 PTA 的使用规则。</p></article>
       </div>
     </section>
 
@@ -110,6 +122,243 @@
         observer.observe(element);
       });
     }
+  </script>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const TAU = Math.PI * 2;
+    const MODELS = [
+      { name: 'DeepSeek' }, { name: 'Mimo' }, { name: 'Qwen' }, { name: 'Gemini' },
+      { name: 'ChatGPT' }, { name: 'Claude' }, { name: 'Step' }, { name: 'GLM' },
+      { name: 'Kimi' }, { name: 'Grok' }, { name: 'Nemotron' }, { name: 'Muse Spark' },
+      { name: 'MiniMax' }
+    ];
+    const SHELLS = [
+      { r: 6.5, rings: [{ count: 3, incl: 0.62, azim: 0.35 }] },
+      { r: 9.8, rings: [{ count: 3, incl: 0.30, azim: 1.55 }, { count: 2, incl: 1.72, azim: 0.45 }] },
+      { r: 13.1, rings: [{ count: 3, incl: 0.95, azim: 2.35 }, { count: 2, incl: 1.95, azim: 1.15 }] }
+    ];
+    const SPEEDS = [0.42, 0.27, 0.18];
+    const TRAIL = 20;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canvas = document.getElementById('ai-orbit-scene');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+    const targetCameraZ = 40;
+    camera.position.set(0, 0, reduced ? targetCameraZ : 46);
+    const atom = new THREE.Group();
+    atom.rotation.set(0.42, -0.55, 0);
+    scene.add(atom);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.65));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.3);
+    keyLight.position.set(7, 10, 11);
+    scene.add(keyLight);
+
+    const toTexture = (surface) => {
+      const texture = new THREE.CanvasTexture(surface);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      return texture;
+    };
+    const makeBadge = (name) => {
+      const surface = document.createElement('canvas');
+      surface.width = surface.height = 256;
+      const context = surface.getContext('2d');
+      const shade = context.createRadialGradient(128, 128, 86, 128, 128, 127);
+      shade.addColorStop(0, 'rgba(0,0,0,.10)');
+      shade.addColorStop(1, 'rgba(0,0,0,0)');
+      context.fillStyle = shade;
+      context.fillRect(0, 0, 256, 256);
+      context.fillStyle = '#ffffff';
+      context.beginPath(); context.arc(128, 128, 90, 0, TAU); context.fill();
+      context.strokeStyle = 'rgba(0,0,0,.28)'; context.lineWidth = 1.2;
+      context.beginPath(); context.arc(128, 128, 77, 0, TAU); context.stroke();
+      context.strokeStyle = '#0a0a0a'; context.lineWidth = 5.5;
+      context.beginPath(); context.arc(128, 128, 90, 0, TAU); context.stroke();
+      context.fillStyle = '#0a0a0a';
+      context.beginPath(); context.arc(128, 38, 4.5, 0, TAU); context.fill();
+      let fontSize = 44;
+      context.textAlign = 'center'; context.textBaseline = 'middle';
+      do {
+        context.font = `700 ${fontSize}px Inter, "PingFang SC", sans-serif`;
+        fontSize -= 2;
+      } while (context.measureText(name).width > 130 && fontSize > 17);
+      context.fillText(name, 128, 130);
+      return toTexture(surface);
+    };
+    const makeAiLabel = () => {
+      const surface = document.createElement('canvas');
+      surface.width = surface.height = 256;
+      const context = surface.getContext('2d');
+      context.fillStyle = '#f6f6f2';
+      context.font = '700 76px Georgia, serif';
+      context.textAlign = 'center'; context.textBaseline = 'middle';
+      context.fillText('AI', 128, 136);
+      return toTexture(surface);
+    };
+    const circleGeometry = (radius, segments = 200) => {
+      const points = [];
+      for (let index = 0; index <= segments; index += 1) {
+        const angle = index / segments * TAU;
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
+      }
+      return new THREE.BufferGeometry().setFromPoints(points);
+    };
+
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(2.35, 48, 32),
+      new THREE.MeshStandardMaterial({ color: 0x111113, roughness: 0.3, metalness: 0.08 })
+    );
+    atom.add(core);
+    const coreLabel = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: makeAiLabel(), transparent: true, depthWrite: false, depthTest: true
+    }));
+    coreLabel.scale.setScalar(4.1);
+    coreLabel.position.set(0, 0, 2.38);
+    scene.add(coreLabel);
+
+    const models = [];
+    const rings = [];
+    const ringLines = [];
+    let modelIndex = 0;
+    SHELLS.forEach((shell, shellIndex) => {
+      shell.rings.forEach((ringDefinition, ringIndex) => {
+        const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+          ringDefinition.incl + shellIndex * 0.12,
+          ringDefinition.azim + shellIndex * 0.7,
+          0
+        ));
+        const ringGroup = new THREE.Group();
+        ringGroup.quaternion.copy(quaternion);
+        atom.add(ringGroup);
+        const mainLine = new THREE.Line(
+          circleGeometry(shell.r),
+          new THREE.LineBasicMaterial({ color: 0x111113, transparent: true, opacity: 0.38, depthWrite: false })
+        );
+        const dashLine = new THREE.Line(
+          circleGeometry(shell.r * 0.955),
+          new THREE.LineDashedMaterial({ color: 0x111113, transparent: true, opacity: 0.1, dashSize: 0.35, gapSize: 0.3, depthWrite: false })
+        );
+        dashLine.computeLineDistances();
+        ringGroup.add(mainLine, dashLine);
+        ringLines.push(mainLine, dashLine);
+        const ring = {
+          quaternion,
+          radius: shell.r,
+          angle: ringIndex * 1.7 + shellIndex * 0.9,
+          direction: (ringIndex + shellIndex) % 2 ? -1 : 1,
+          speed: SPEEDS[shellIndex] * (1 + ringIndex * 0.12)
+        };
+        rings.push(ring);
+        for (let itemIndex = 0; itemIndex < ringDefinition.count; itemIndex += 1) {
+          const definition = MODELS[modelIndex];
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: makeBadge(definition.name), transparent: true, depthWrite: false
+          }));
+          const size = 2.35 + shellIndex * 0.18;
+          sprite.scale.setScalar(size);
+          atom.add(sprite);
+          const trailGeometry = new THREE.BufferGeometry();
+          trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL * 3), 3));
+          const trail = new THREE.Line(trailGeometry, new THREE.LineBasicMaterial({
+            color: 0xb2b2b2, transparent: true, opacity: 0.34, depthWrite: false
+          }));
+          atom.add(trail);
+          models.push({
+            sprite, trail, ring, size,
+            offset: itemIndex / ringDefinition.count * TAU + ringIndex * 1.1,
+            history: new Float32Array(TRAIL * 3),
+            phase: Math.random() * TAU
+          });
+          modelIndex += 1;
+        }
+      });
+    });
+    canvas.dataset.ringCount = String(rings.length);
+    canvas.dataset.modelCount = String(models.length);
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      renderer.setSize(bounds.width, bounds.height, false);
+      camera.aspect = bounds.width / bounds.height;
+      camera.updateProjectionMatrix();
+    };
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
+    resize();
+
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    let velocityX = 0;
+    let velocityY = 0;
+    canvas.addEventListener('pointerdown', (event) => {
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      canvas.classList.add('dragging');
+      canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      if (!dragging) return;
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      atom.rotation.y += dx * 0.0055;
+      atom.rotation.x = THREE.MathUtils.clamp(atom.rotation.x + dy * 0.0055, -1.35, 1.35);
+      velocityY = dx * 0.0055;
+      velocityX = dy * 0.0055;
+    });
+    const stopDragging = () => {
+      dragging = false;
+      canvas.classList.remove('dragging');
+    };
+    canvas.addEventListener('pointerup', stopDragging);
+    canvas.addEventListener('pointercancel', stopDragging);
+    canvas.addEventListener('dblclick', () => {
+      atom.rotation.set(0.42, -0.55, 0);
+      velocityX = velocityY = 0;
+    });
+
+    const clock = new THREE.Clock();
+    const motionScale = reduced ? 0 : 1;
+    const temporary = new THREE.Vector3();
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const rawDelta = Math.min(clock.getDelta(), 0.05);
+      const delta = rawDelta * motionScale;
+      const elapsed = clock.elapsedTime;
+      camera.position.z += (targetCameraZ - camera.position.z) * Math.min(1, rawDelta * 4);
+      if (!dragging && motionScale) {
+        velocityX *= 0.93;
+        velocityY *= 0.93;
+        atom.rotation.y += velocityY + delta * 0.11;
+        atom.rotation.x = THREE.MathUtils.clamp(atom.rotation.x + velocityX, -1.35, 1.35);
+      }
+      rings.forEach((ring) => { ring.angle += delta * ring.speed * ring.direction; });
+      models.forEach((model) => {
+        const angle = model.ring.angle + model.offset;
+        temporary.set(
+          Math.cos(angle) * model.ring.radius,
+          Math.sin(angle) * model.ring.radius,
+          0
+        ).applyQuaternion(model.ring.quaternion);
+        model.sprite.position.copy(temporary);
+        model.sprite.scale.setScalar(model.size * (1 + 0.025 * Math.sin(elapsed * 1.6 + model.phase)));
+        model.history.copyWithin(0, 3);
+        model.history[(TRAIL - 1) * 3] = temporary.x;
+        model.history[(TRAIL - 1) * 3 + 1] = temporary.y;
+        model.history[(TRAIL - 1) * 3 + 2] = temporary.z;
+        const positions = model.trail.geometry.attributes.position.array;
+        positions.set(model.history);
+        model.trail.geometry.attributes.position.needsUpdate = true;
+      });
+      renderer.render(scene, camera);
+    };
+    animate();
   </script>
 </body>
 </html>
