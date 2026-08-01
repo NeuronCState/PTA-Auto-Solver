@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PTA自动答题脚本安装教程｜PTA脚本配置指南 - PTA Auto Solver</title>
+  <meta name="description" content="PTA自动答题脚本安装教程：安装 Tampermonkey，配置 DeepSeek、MiMo 或 OpenRouter API Key，选择模型和编程语言并完成第一道 PTA 题目测试。">
+  <meta name="keywords" content="PTA自动答题脚本安装, PTA脚本教程, 拼题A脚本安装, Tampermonkey PTA, PTA AI答题配置">
+  <meta name="author" content="NeuronCState">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="PTA自动答题脚本安装教程｜PTA Auto Solver">
+  <meta property="og:description" content="从 Tampermonkey 安装到 API Key、模型和编程语言配置的完整 PTA脚本教程。">
+  <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/guide.html">
+  <link rel="stylesheet" href="styles.css?v=20260801-seo-v2-webgl-r185">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "PTA自动答题脚本安装教程",
+      "description": "安装和配置 PTA Auto Solver 的步骤。",
+      "inLanguage": "zh-CN",
+      "url": "https://neuroncstate.github.io/PTA-Auto-Solver/guide.html",
+      "author": { "@type": "Person", "name": "NeuronCState" },
+      "step": [
+        { "@type": "HowToStep", "name": "安装 Tampermonkey", "text": "在 Chrome 或 Edge 安装 Tampermonkey 浏览器扩展。" },
+        { "@type": "HowToStep", "name": "导入 PTA Auto Solver", "text": "点击脚本安装链接并保存用户脚本。" },
+        { "@type": "HowToStep", "name": "配置 AI 供应商", "text": "在 PTA 页面打开模型设置，填写 API Key 并获取模型列表。" },
+        { "@type": "HowToStep", "name": "开始测试", "text": "选择编程语言，核对题干和生成代码，再提交第一道题。" }
+      ]
+    }
+  </script>
+</head>
+<body class="article-page">
+  <div class="page-noise" aria-hidden="true"></div>
+  <header class="nav shell">
+    <a class="brand" href="./" aria-label="PTA Auto Solver 首页">PTA Auto Solver</a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="features.html">功能</a><a href="guide.html" aria-current="page">安装教程</a><a href="faq.html">FAQ</a><a href="./">首页</a>
+    </nav>
+  </header>
+  <main class="article shell">
+    <p class="breadcrumb"><a href="./">PTA Auto Solver</a><span>/</span>安装教程</p>
+    <header class="article-hero">
+      <p class="eyebrow">PTA SCRIPT GUIDE · 1.5.0</p>
+      <h1>PTA自动答题脚本<br><em>安装与配置教程。</em></h1>
+      <p class="article-lede">这是一份 PTA脚本安装指南，适用于想在拼题A页面使用 PTA Auto Solver 的用户。完成配置后，你可以读取题干、选择模型、生成作答建议并查看真实评分。</p>
+    </header>
+    <div class="article-layout">
+      <article class="article-content">
+        <section class="article-section"><span class="article-index">01</span><h2>安装 Tampermonkey</h2><p>使用 Chrome 或 Edge 打开浏览器扩展商店，安装 Tampermonkey。安装后确认浏览器右上角出现扩展图标。</p><p>PTA Auto Solver 是用户脚本，需要在 Tampermonkey 中运行。安装扩展后，点击页面上的<a href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js"> v1.5.0 脚本安装链接</a>，确认导入并保存。</p></section>
+        <section class="article-section"><span class="article-index">02</span><h2>配置 AI 供应商与模型</h2><p>进入 PTA 题目页面，在脚本面板中打开模型设置。当前支持 DeepSeek、MiMo 和 OpenRouter。</p><ol class="article-steps"><li>选择 AI 供应商并填写自己的 API Key。</li><li>点击获取模型列表，脚本会请求供应商返回可用模型。</li><li>从下拉列表选择具体模型；OpenRouter 的 Free 模型会优先显示。</li><li>根据模型能力决定是否开启图片输入。</li></ol><div class="article-note"><strong>安全提示</strong><p>API Key 只保存在浏览器本地配置中。不要把 Key 截图、提交到 GitHub 或粘贴到公开讨论区。</p></div></section>
+        <section class="article-section"><span class="article-index">03</span><h2>选择编程语言并测试</h2><p>编程语言选择位于首页，不需要进入供应商配置页面。支持自动识别题目类型，也可以手动选择 C、C++、Java、Python 等语言。</p><p>首次使用建议关闭连续答题，只测试当前题：核对脚本提取的题干、AI 生成的代码和编辑器内容，再点击提交本题作答。</p></section>
+        <section class="article-section"><span class="article-index">04</span><h2>提交、评分与下一题</h2><p>提交后脚本会等待 PTA 程序评分，读取本题得分并判断是否满分。未满分时最多自动重新作答一次；选择连续答题且本题满分后，脚本才会进入下一题。</p><p>如果遇到题干为空、返回不是有效 JSON 或评分等待过久，请先查看面板运行记录和模型错误提示，再决定是否重试。</p></section>
+        <section class="article-section article-next"><h2>继续阅读</h2><div class="article-link-grid"><a href="features.html"><span>功能说明</span><strong>了解 PTA脚本全部功能 →</strong></a><a href="faq.html"><span>常见问题</span><strong>查看配置和错误处理 →</strong></a></div></section>
+      </article>
+      <aside class="article-aside glass-card"><p class="eyebrow">QUICK LINKS</p><a class="aside-link" href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js">安装 v1.5.0 <span>↗</span></a><a class="aside-link" href="features.html">查看功能 <span>→</span></a><a class="aside-link" href="faq.html">遇到问题？<span>→</span></a><p class="aside-caption">请遵守课程、考试和 PTA 平台的使用规则。</p></aside>
+    </div>
+  </main>
+  <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
+</body>
+</html>
