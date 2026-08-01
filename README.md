@@ -10,7 +10,7 @@
   <a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues">反馈问题</a>
 </p>
 
-PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上的 Tampermonkey AI 辅助答题脚本。它读取当前题目上下文，调用你选择的 AI 供应商，把结果写入 PTA 编辑器，并在提交后读取评分。
+PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上的 Tampermonkey AI 辅助答题脚本，也可作为 PTA 脚本、PTA 自动答题或 PTA 自动刷题工具被检索。它读取当前题目上下文，调用你选择的 AI 供应商，把结果写入 PTA 编辑器，并在提交后读取评分。
 
 > 当前版本：`1.5.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
 
