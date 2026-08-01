@@ -3,33 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PTA 自动刷题脚本 · PTA 自动答题 AI 工具 | PTA Auto Solver</title>
-  <meta name="description" content="PTA Auto Solver 是面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本：读取题目、生成作答建议、写入编辑器并跟踪评分。支持 DeepSeek、MiMo 与动态模型选择。">
-  <meta name="keywords" content="PTA自动刷题, PTA脚本, PTA自动答题, PTA AI答题, 拼题A脚本, Tampermonkey PTA脚本, PTA Auto Solver">
+  <title>PTA自动答题脚本｜PTA脚本｜拼题A AI工具 - PTA Auto Solver</title>
+  <meta name="description" content="PTA Auto Solver 是面向拼题A的 PTA自动答题脚本与 Tampermonkey PTA脚本，支持 DeepSeek、MiMo、OpenRouter、动态模型、代码写入和评分追踪。">
+  <meta name="keywords" content="PTA自动答题, PTA脚本, PTA自动刷题, 拼题A脚本, PTA AI答题, Tampermonkey PTA脚本, PTA Auto Solver">
+  <meta name="author" content="NeuronCState">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="PTA 自动刷题脚本 · PTA 自动答题 AI 工具 | PTA Auto Solver">
-  <meta property="og:description" content="面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本：读取题目、生成作答建议、写入编辑器并跟踪评分。">
+  <meta property="og:site_name" content="PTA Auto Solver">
+  <meta property="og:title" content="PTA自动答题脚本｜PTA脚本｜拼题A AI工具">
+  <meta property="og:description" content="面向拼题A的 Tampermonkey PTA脚本，支持动态模型、代码写入、提交评分与连续答题控制。">
   <meta property="og:url" content="https://neuroncstate.github.io/PTA-Auto-Solver/">
   <meta property="og:image" content="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/screenshots/main-page.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b0b0d">
   <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/">
-  <link rel="stylesheet" href="styles.css?v=20260801-webgl-r185">
+  <link rel="stylesheet" href="styles.css?v=20260801-seo-v2-webgl-r185">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
+      "@type": ["SoftwareApplication", "WebApplication"],
       "name": "PTA Auto Solver",
       "applicationCategory": "BrowserApplication",
       "operatingSystem": "Chrome, Edge, Firefox",
-      "description": "面向拼题 A（PTA）的 Tampermonkey AI 辅助答题脚本，可读取题目、生成作答建议、写入编辑器并跟踪评分。",
+      "description": "面向拼题A的 PTA自动答题脚本与 Tampermonkey PTA脚本，可读取题目、生成作答建议、写入编辑器并跟踪评分。",
       "url": "https://neuroncstate.github.io/PTA-Auto-Solver/",
       "downloadUrl": "https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js",
       "softwareVersion": "1.5.0",
       "inLanguage": "zh-CN",
       "author": { "@type": "Person", "name": "NeuronCState" },
+      "sameAs": ["https://github.com/NeuronCState/PTA-Auto-Solver"],
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
     }
   </script>
@@ -41,9 +44,9 @@
       <span>PTA Auto Solver</span>
     </a>
     <nav class="nav-links" aria-label="主导航">
-      <a href="#features">功能</a>
-      <a href="#preview">预览</a>
-      <a href="#faq">说明</a>
+      <a href="features.html">功能</a>
+      <a href="guide.html">安装教程</a>
+      <a href="faq.html">FAQ</a>
       <a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a>
     </nav>
   </header>
@@ -52,13 +55,13 @@
     <section class="hero shell">
       <div class="hero-copy" data-reveal>
         <p class="eyebrow"><span class="status-dot"></span> OPEN SOURCE · v1.5.0</p>
-        <h1>PTA 自动答题脚本，<br><em>清晰、可控、少一点重复。</em></h1>
-        <p class="hero-text">PTA Auto Solver 是一个面向拼题 A 的 Tampermonkey PTA 脚本。它可动态读取模型、提取真实题干、生成作答建议、写入编辑器并等待评分。</p>
+        <h1>PTA自动答题脚本，<br><em>清晰、可控、少一点重复。</em></h1>
+        <p class="hero-text">PTA Auto Solver 是一个面向拼题A的 PTA脚本与 AI答题工具。它可动态读取模型、提取真实题干、生成作答建议、写入编辑器并等待评分。</p>
         <div class="hero-actions">
           <a class="button button-dark" href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js">安装 / 更新脚本 <span>↗</span></a>
           <a class="button button-light" href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">查看源代码</a>
         </div>
-        <p class="microcopy">安装 Tampermonkey 后点击即可导入。脚本会通过更新地址自动检查新版本。</p>
+        <p class="microcopy">安装 Tampermonkey 后点击即可导入。查看<a class="text-link" href="guide.html"> PTA脚本安装教程</a>了解完整配置。</p>
       </div>
       <div class="hero-card glass-card" aria-label="PTA AI 模型轨道" data-reveal>
         <div class="card-topline"><span>PTA / EXAM</span><span class="card-live">● READY</span></div>
@@ -107,9 +110,18 @@
         <a class="button button-dark" href="https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js">获取 v1.5.0 <span>↗</span></a>
       </div>
     </section>
+
+    <section class="section shell seo-links-section">
+      <div class="section-heading inline-heading" data-reveal><div><p class="eyebrow">START HERE</p><h2>从安装到使用，<br>每一步都有说明。</h2></div><a class="text-link" href="guide.html">查看安装教程 ↗</a></div>
+      <div class="seo-link-grid">
+        <a class="seo-link-card glass-card" href="guide.html" data-reveal><span>01 / GUIDE</span><strong>PTA自动答题脚本安装教程</strong><p>从 Tampermonkey 安装、API Key 配置到第一道题测试。</p></a>
+        <a class="seo-link-card glass-card" href="features.html" data-reveal><span>02 / FEATURES</span><strong>PTA脚本功能说明</strong><p>了解动态模型、编程语言、评分闭环和连续答题。</p></a>
+        <a class="seo-link-card glass-card" href="faq.html" data-reveal><span>03 / FAQ</span><strong>PTA自动答题常见问题</strong><p>查找模型、Key 错误、题干提取和浏览器兼容说明。</p></a>
+      </div>
+    </section>
   </main>
 
-  <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues" target="_blank" rel="noreferrer">反馈问题 ↗</a></footer>
+  <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><span><a href="changelog.html">更新记录</a> · <a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues" target="_blank" rel="noreferrer">反馈问题 ↗</a></span></footer>
   <script>
     const root = document.documentElement;
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
