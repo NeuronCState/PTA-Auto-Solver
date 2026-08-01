@@ -143,6 +143,9 @@
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canvas = document.getElementById('ai-orbit-scene');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    // GitHub Pages / Safari 部分 WebGL 实现会让 getProgramInfoLog 返回 null。
+    // 这是展示型动画，不需要把 Three.js 的 shader 调试日志写入控制台。
+    renderer.debug.checkShaderErrors = false;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
