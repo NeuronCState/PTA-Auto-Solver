@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PTA脚本功能说明｜PTA自动答题工具 1.5.0 - PTA Auto Solver</title>
+  <meta name="description" content="PTA脚本功能说明：PTA Auto Solver 支持动态模型列表、DeepSeek、MiMo、OpenRouter、编程语言选择、题干提取、代码写入、评分检测和连续答题。">
+  <meta name="keywords" content="PTA脚本功能, PTA自动答题功能, PTA自动刷题脚本, OpenRouter PTA, DeepSeek PTA脚本, MiMo PTA">
+  <meta name="author" content="NeuronCState">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="PTA脚本功能说明｜PTA Auto Solver 1.5.0">
+  <meta property="og:description" content="了解 PTA Auto Solver 的动态模型、题干提取、代码写入和评分闭环。">
+  <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/features.html">
+  <link rel="stylesheet" href="styles.css?v=20260801-seo-v2-webgl-r185">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "PTA脚本功能说明",
+      "description": "PTA Auto Solver 1.5.0 功能说明。",
+      "inLanguage": "zh-CN",
+      "url": "https://neuroncstate.github.io/PTA-Auto-Solver/features.html",
+      "isPartOf": { "@type": "WebSite", "name": "PTA Auto Solver", "url": "https://neuroncstate.github.io/PTA-Auto-Solver/" }
+    }
+  </script>
+</head>
+<body class="article-page">
+  <div class="page-noise" aria-hidden="true"></div>
+  <header class="nav shell"><a class="brand" href="./" aria-label="PTA Auto Solver 首页">PTA Auto Solver</a><nav class="nav-links" aria-label="主导航"><a href="features.html" aria-current="page">功能</a><a href="guide.html">安装教程</a><a href="faq.html">FAQ</a><a href="./">首页</a></nav></header>
+  <main class="article shell">
+    <p class="breadcrumb"><a href="./">PTA Auto Solver</a><span>/</span>功能说明</p>
+    <header class="article-hero"><p class="eyebrow">PTA SCRIPT FEATURES · VERSION 1.5.0</p><h1>PTA脚本功能说明<br><em>把重复操作变成可见流程。</em></h1><p class="article-lede">PTA Auto Solver 是面向拼题A的 PTA自动答题脚本。它连接你自己的 AI API，读取当前题目，生成作答建议，并把提交和评分过程保留在页面中。</p></header>
+    <div class="feature-detail-grid">
+      <article class="detail-card glass-card"><span class="feature-index">01</span><h2>动态模型列表</h2><p>填写 API Key 后向供应商请求真实模型列表，不固定模型名称。支持 DeepSeek、MiMo 和 OpenRouter；OpenRouter 的 Free 模型优先排列。</p><span class="feature-tag">DEEPSEEK / MIMO / OPENROUTER</span></article>
+      <article class="detail-card glass-card"><span class="feature-index">02</span><h2>图片输入策略</h2><p>MiMo 默认允许图片上传，DeepSeek 默认关闭图片上传。是否显示图片能力由供应商和模型配置决定。</p><span class="feature-tag">IMAGE INPUT</span></article>
+      <article class="detail-card glass-card"><span class="feature-index">03</span><h2>题干提取</h2><p>脚本从真实 PTA 页面提取题目内容，向 AI 提示词传递题干、输入输出要求和当前题型，减少手动复制。</p><span class="feature-tag">QUESTION EXTRACTION</span></article>
+      <article class="detail-card glass-card"><span class="feature-index">04</span><h2>编程语言控制</h2><p>首页直接显示编程语言选择框，支持自动识别与手动选择。下拉框采用脚本统一的黑白玻璃设计。</p><span class="feature-tag">C / C++ / JAVA / PYTHON</span></article>
+      <article class="detail-card glass-card"><span class="feature-index">05</span><h2>评分闭环</h2><p>点击提交本题后等待 PTA 打分，检测是否满分；未满分最多重答一次，并将每次生成和评分写入运行记录。</p><span class="feature-tag">SUBMIT → SCORE → RETRY</span></article>
+      <article class="detail-card glass-card"><span class="feature-index">06</span><h2>连续答题</h2><p>开启连续答题后，只有当前题满分才会进入下一题。进度按照实际题目总数计算，避免一直停留在“等待开始”。</p><span class="feature-tag">PROGRESS / NEXT</span></article>
+    </div>
+    <section class="article-section article-wide"><span class="article-index">WORKFLOW</span><h2>一次答题的工作流</h2><div class="workflow"><span>读取题干</span><b>→</b><span>请求 AI</span><b>→</b><span>写入编辑器</span><b>→</b><span>提交评分</span><b>→</b><span>满分后下一题</span></div></section>
+    <section class="article-section article-next"><h2>开始使用</h2><div class="article-link-grid"><a href="guide.html"><span>安装教程</span><strong>配置 PTA脚本 →</strong></a><a href="changelog.html"><span>版本记录</span><strong>查看 1.5.0 更新内容 →</strong></a></div></section>
+  </main>
+  <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
+</body>
+</html>
