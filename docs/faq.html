@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PTA自动答题常见问题｜PTA脚本 FAQ - PTA Auto Solver</title>
+  <meta name="description" content="PTA自动答题和 PTA脚本常见问题：模型列表为空、API Key 错误、题干提取失败、返回不是有效 JSON、编程语言选择和评分重试。">
+  <meta name="keywords" content="PTA自动答题常见问题, PTA脚本FAQ, PTA Key错误, PTA题干提取, PTA模型列表, PTA返回JSON错误">
+  <meta name="author" content="NeuronCState">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="PTA自动答题常见问题｜PTA脚本 FAQ">
+  <meta property="og:description" content="解决 PTA Auto Solver 配置、模型、题干、JSON 和评分流程中的常见问题。">
+  <link rel="canonical" href="https://neuroncstate.github.io/PTA-Auto-Solver/faq.html">
+  <link rel="stylesheet" href="styles.css?v=20260801-seo-v2-webgl-r185">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "name": "PTA自动答题常见问题",
+      "url": "https://neuroncstate.github.io/PTA-Auto-Solver/faq.html",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        { "@type": "Question", "name": "为什么 API Key 无法使用？", "acceptedAnswer": { "@type": "Answer", "text": "请确认供应商、Base URL 和 API Key 匹配，并使用获取模型列表按钮验证。错误信息会显示在脚本面板内。" } },
+        { "@type": "Question", "name": "为什么模型列表为空？", "acceptedAnswer": { "@type": "Answer", "text": "请检查网络、Key 权限和供应商地址；模型列表来自供应商接口，不是脚本固定写入。" } },
+        { "@type": "Question", "name": "为什么 AI 返回不是有效 JSON？", "acceptedAnswer": { "@type": "Answer", "text": "通常是模型只返回推理内容、响应格式不符合要求或 token 预算不足。请检查模型能力和运行记录。" } },
+        { "@type": "Question", "name": "为什么没有自动进入下一题？", "acceptedAnswer": { "@type": "Answer", "text": "连续答题开启时，脚本会等待本题满分；未满分最多重答一次，仍未满分则停止进入下一题。" } }
+      ]
+    }
+  </script>
+</head>
+<body class="article-page">
+  <div class="page-noise" aria-hidden="true"></div>
+  <header class="nav shell"><a class="brand" href="./" aria-label="PTA Auto Solver 首页">PTA Auto Solver</a><nav class="nav-links" aria-label="主导航"><a href="features.html">功能</a><a href="guide.html">安装教程</a><a href="faq.html" aria-current="page">FAQ</a><a href="./">首页</a></nav></header>
+  <main class="article shell">
+    <p class="breadcrumb"><a href="./">PTA Auto Solver</a><span>/</span>常见问题</p>
+    <header class="article-hero"><p class="eyebrow">PTA AUTO ANSWER FAQ</p><h1>PTA自动答题常见问题<br><em>先看运行记录，再处理错误。</em></h1><p class="article-lede">这里整理 PTA脚本使用过程中的常见问题。错误信息会显示在面板中，优先按照具体提示检查供应商、模型、题干和 PTA 页面状态。</p></header>
+    <div class="faq-list">
+      <details open><summary>为什么 API Key 错误不能获取模型？</summary><p>请确认 Key 没有多余空格、供应商选项与 Key 来源一致、Base URL 正确且账户仍有额度。点击“获取模型列表”后，脚本会把错误显示在面板中。</p></details>
+      <details><summary>为什么模型列表为空？</summary><p>模型列表来自供应商的模型接口，不是脚本固定写死。检查网络连接、API Key 权限、供应商地址和接口是否兼容 OpenAI 风格模型列表。</p></details>
+      <details><summary>MiMo 和 DeepSeek 的图片上传有什么区别？</summary><p>MiMo 默认开启图片输入能力，DeepSeek 默认关闭。实际是否可用还取决于你选择的具体模型是否支持视觉输入。</p></details>
+      <details><summary>为什么题干提取不完整或 AI 返回空内容？</summary><p>先检查当前是否位于真实 PTA 题目页面，再查看运行记录中的“提取题干”内容。若模型只返回推理内容，可能需要提高 token 预算或换用支持结构化输出的模型。</p></details>
+      <details><summary>为什么出现“响应不是有效 JSON”？</summary><p>可能是模型没有按照提示词返回 JSON、模型的推理内容占满预算，或供应商对响应格式支持不一致。建议先提高 token 预算、换模型，并检查实际响应记录。</p></details>
+      <details><summary>为什么没有自动进入下一题？</summary><p>连续答题模式下，只有当前题得分达到满分才会点击下一题。未满分时脚本最多重新作答一次；第二次仍未满分时会停止，避免无限提交。</p></details>
+      <details><summary>可以把 API Key 发布到 GitHub 吗？</summary><p>不可以。API Key 只能填写在本地脚本配置中，不能提交到代码、截图、Issue 或 README。若 Key 已经泄露，请立即在供应商后台撤销并重新生成。</p></details>
+    </div>
+    <section class="article-section article-next"><h2>仍然无法解决？</h2><div class="article-link-grid"><a href="guide.html"><span>安装配置</span><strong>重新检查 PTA脚本配置 →</strong></a><a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues" target="_blank" rel="noreferrer"><span>反馈问题</span><strong>前往 GitHub Issues →</strong></a></div></section>
+  </main>
+  <footer class="footer shell"><span>© 2026 NeuronCState</span><span>PTA Auto Solver</span><a href="https://github.com/NeuronCState/PTA-Auto-Solver" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
+</body>
+</html>
