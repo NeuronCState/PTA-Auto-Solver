@@ -2,6 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://neuroncstate.github.io/PTA-Auto-Solver/</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://neuroncstate.github.io/PTA-Auto-Solver/guide.html</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://neuroncstate.github.io/PTA-Auto-Solver/features.html</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://neuroncstate.github.io/PTA-Auto-Solver/faq.html</loc>
+    <lastmod>2026-08-01</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://neuroncstate.github.io/PTA-Auto-Solver/changelog.html</loc>
+    <lastmod>2026-08-01</lastmod>
     <changefreq>weekly</changefreq>
   </url>
 </urlset>
