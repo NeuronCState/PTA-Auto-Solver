@@ -13,7 +13,7 @@
     <text x="64" y="82" font-size="18" font-weight="700" letter-spacing="3">TAMPERMONKEY · PTA · AI ASSISTANT</text>
     <text x="64" y="166" font-size="64" font-weight="800" letter-spacing="-2">PTA Auto Solver</text>
     <text x="64" y="212" font-size="27" font-weight="600">从题干到评分的一条本地工作流。</text>
-    <text x="64" y="256" fill="#696967" font-size="20">DeepSeek · MiMo · OpenRouter　/　v1.5.0</text>
+    <text x="64" y="256" fill="#696967" font-size="20">DeepSeek · MiMo · OpenRouter · OpenCode Free　/　v1.6.0</text>
   </g>
   <g transform="translate(768 70)">
     <rect x="0" y="0" width="344" height="238" rx="22" fill="#101010"/>

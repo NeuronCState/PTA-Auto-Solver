@@ -1,19 +1,21 @@
 // ==UserScript==
 // @name         PTA Auto Solver
 // @namespace    https://pintia.cn/
-// @version      1.5.0
+// @version      1.6.0
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
 // @homepageURL  https://neuroncstate.github.io/PTA-Auto-Solver/
 // @supportURL   https://github.com/NeuronCState/PTA-Auto-Solver/issues
-// @updateURL    https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js
-// @downloadURL  https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.5.0.user.js
+// @updateURL    https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.6.0.user.js
+// @downloadURL  https://raw.githubusercontent.com/NeuronCState/PTA-Auto-Solver/main/PTA%20Auto%20Solver%20Pro-1.6.0.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
 // @connect      api.deepseek.com
 // @connect      api.xiaomimimo.com
 // @connect      openrouter.ai
+// @connect      127.0.0.1
+// @connect      localhost
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -42,6 +44,14 @@
             auth: 'bearer',
             supportsImages: true,
             hint: '多供应商 · Free 模型置顶'
+        },
+        opencode: {
+            name: 'OpenCode Free',
+            baseUrl: 'http://127.0.0.1:8788/v1',
+            auth: 'bearer',
+            supportsImages: false,
+            optionalKey: true,
+            hint: '本地代理 · 仅显示 Free 模型'
         }
     };
     var LANG_NAMES = { c: 'C', cpp: 'C++', python: 'Python', java: 'Java', pascal: 'Pascal' };
@@ -52,13 +62,16 @@
         configs: {
             deepseek: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false },
             mimo: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: true },
-            openrouter: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }
+            openrouter: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false },
+            opencode: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }
         },
         skipAnswered: true,
         continuous: true,
         language: 'auto',
         theme: 'light'
     };
+    var localRuntime = { available: false, checking: false, baseUrl: PROVIDERS.opencode.baseUrl };
+    var localMonitorTimer = null;
 
     function readJson(key, fallback) {
         try {
@@ -74,11 +87,12 @@
     function loadState() {
         var saved = readJson(STORAGE_KEY, null);
         if (saved) {
-            state.provider = ['deepseek', 'mimo', 'openrouter'].indexOf(saved.provider) >= 0 ? saved.provider : 'deepseek';
+            state.provider = ['deepseek', 'mimo', 'openrouter', 'opencode'].indexOf(saved.provider) >= 0 ? saved.provider : 'deepseek';
             state.configs = Object.assign(state.configs, saved.configs || {});
             state.configs.deepseek = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }, state.configs.deepseek || {});
             state.configs.mimo = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: true }, state.configs.mimo || {});
             state.configs.openrouter = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }, state.configs.openrouter || {});
+            state.configs.opencode = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false }, state.configs.opencode || {});
             state.skipAnswered = saved.skipAnswered !== false;
             state.continuous = saved.continuous !== false;
             state.language = ['auto', 'c', 'cpp', 'python', 'java', 'pascal'].indexOf(saved.language) >= 0 ? saved.language : 'auto';
@@ -449,6 +463,7 @@
     function baseUrl(provider) {
         var config = state.configs[provider];
         if (provider === 'mimo' && config && /^tp-/i.test(config.apiKey || '')) return 'https://token-plan-cn.xiaomimimo.com/v1';
+        if (provider === 'opencode') return localRuntime.baseUrl;
         return PROVIDERS[provider].baseUrl;
     }
 
@@ -458,13 +473,61 @@
 
     function authHeaders(provider, apiKey, method) {
         var headers = method === 'GET' ? {} : { 'Content-Type': 'application/json' };
-        if (PROVIDERS[provider].auth === 'api-key') headers['api-key'] = apiKey;
-        else headers.Authorization = 'Bearer ' + apiKey;
+        if (apiKey) {
+            if (PROVIDERS[provider].auth === 'api-key') headers['api-key'] = apiKey;
+            else headers.Authorization = 'Bearer ' + apiKey;
+        }
         if (provider === 'openrouter') {
             headers['HTTP-Referer'] = 'https://pintia.cn/';
             headers['X-Title'] = 'PTA Auto Solver';
         }
         return headers;
+    }
+
+    function providerReady(provider) {
+        var config = state.configs[provider];
+        return !!(config && (PROVIDERS[provider].optionalKey ? localRuntime.available : config.apiKey));
+    }
+
+    function probeLocalOpenCode(host) {
+        return new Promise(function (resolve) {
+            GM_xmlhttpRequest({
+                method: 'GET', url: 'http://' + host + ':8788/health', timeout: 1800,
+                onload: function (response) {
+                    resolve(response.status >= 200 && response.status < 300 ? 'http://' + host + ':8788/v1' : '');
+                },
+                onerror: function () { resolve(''); },
+                ontimeout: function () { resolve(''); },
+                onabort: function () { resolve(''); }
+            });
+        });
+    }
+
+    function detectOpenCode(silent) {
+        if (localRuntime.checking) return Promise.resolve(localRuntime.available);
+        var wasAvailable = localRuntime.available;
+        localRuntime.checking = true;
+        syncUI();
+        return probeLocalOpenCode('127.0.0.1').then(function (url) {
+            return url ? url : probeLocalOpenCode('localhost');
+        }).then(function (url) {
+            localRuntime.checking = false;
+            localRuntime.available = !!url;
+            if (url) localRuntime.baseUrl = url;
+            if (!url) {
+                localRuntime.baseUrl = PROVIDERS.opencode.baseUrl;
+                if (state.provider === 'opencode') {
+                    state.configs.opencode.models = [];
+                    state.configs.opencode.model = '';
+                }
+            }
+            syncUI();
+            if (url && !wasAvailable) {
+                if (!silent) { toast('已检测到 OpenCode Free 本地代理'); log('OpenCode Free 已连接：' + url, 'success'); }
+                if (state.provider === 'opencode') loadModels('opencode', true);
+            }
+            return localRuntime.available;
+        });
     }
 
     function apiError(prefix, status, data) {
@@ -487,7 +550,10 @@
     function requestModels(provider) {
         var config = state.configs[provider];
         return new Promise(function (resolve, reject) {
-            if (!config || !config.apiKey) { reject(new Error('请先填写 ' + PROVIDERS[provider].name + ' API Key')); return; }
+            if (!providerReady(provider)) {
+                reject(new Error(PROVIDERS[provider].optionalKey ? '未检测到 OpenCode Free 本地代理（127.0.0.1:8788）' : '请先填写 ' + PROVIDERS[provider].name + ' API Key'));
+                return;
+            }
             GM_xmlhttpRequest({
                 method: 'GET', url: modelsEndpoint(provider), headers: authHeaders(provider, config.apiKey, 'GET'), timeout: 30000,
                 onload: function (response) {
@@ -544,7 +610,10 @@
         var provider = PROVIDERS[state.provider];
         var config = state.configs[state.provider];
         return new Promise(function (resolve, reject) {
-            if (!config || !config.apiKey) { reject(new Error('请先配置 ' + provider.name + ' API Key')); return; }
+            if (!providerReady(state.provider)) {
+                reject(new Error(provider.optionalKey ? '未检测到 OpenCode Free 本地代理（127.0.0.1:8788）' : '请先配置 ' + provider.name + ' API Key'));
+                return;
+            }
             if (!config.model) { reject(new Error('请先获取并选择一个模型')); return; }
             var body = {
                 model: config.model,
@@ -907,12 +976,12 @@
                 <div id="pta-drawer" class="pta-drawer">
                     <div class="pta-drawer-head"><button id="pta-drawer-close" class="pta-icon-btn">‹</button><div class="pta-drawer-title">设置</div><button id="pta-drawer-save" class="pta-save" style="width:auto;padding:0 12px;margin:0">保存</button></div>
                     <div class="pta-drawer-body">
-                        <div class="pta-provider"><button class="pta-provider-card active" data-provider="deepseek"><span class="pta-provider-name">DeepSeek</span><span class="pta-provider-hint">文字 / 代码</span></button><button class="pta-provider-card" data-provider="mimo"><span class="pta-provider-name">MiMo</span><span class="pta-provider-hint">推理 / 图片</span></button><button class="pta-provider-card" data-provider="openrouter"><span class="pta-provider-name">OpenRouter</span><span class="pta-provider-hint">Free 置顶</span></button></div>
+                        <div class="pta-provider"><button class="pta-provider-card active" data-provider="deepseek"><span class="pta-provider-name">DeepSeek</span><span class="pta-provider-hint">文字 / 代码</span></button><button class="pta-provider-card" data-provider="mimo"><span class="pta-provider-name">MiMo</span><span class="pta-provider-hint">推理 / 图片</span></button><button class="pta-provider-card" data-provider="openrouter"><span class="pta-provider-name">OpenRouter</span><span class="pta-provider-hint">Free 置顶</span></button><button class="pta-provider-card" id="pta-opencode-provider" data-provider="opencode" hidden><span class="pta-provider-name">OpenCode Free</span><span class="pta-provider-hint">本地代理 · 自动发现</span></button></div>
                         <div class="pta-fixed"><span>接口地址</span><strong id="pta-endpoint">api.deepseek.com/v1</strong></div>
-                        <div class="pta-field"><label>API Key</label><input id="pta-api-key" type="password" autocomplete="off" placeholder="填写后自动读取模型列表"></div>
+                        <div class="pta-field"><label id="pta-api-key-label">API Key</label><input id="pta-api-key" type="password" autocomplete="off" placeholder="填写后自动读取模型列表"></div>
                         <div class="pta-field"><label>可用模型</label><div class="pta-model-select" id="pta-model-select"><select id="pta-model" class="pta-model-native" tabindex="-1" aria-hidden="true" disabled><option value="">填写 API Key 后获取</option></select><button type="button" class="pta-select-trigger" id="pta-model-trigger" aria-haspopup="listbox" aria-expanded="false" disabled><span class="pta-select-value" id="pta-model-value">填写 API Key 后获取</span><span class="pta-select-chevron" aria-hidden="true"></span></button><div class="pta-select-menu" id="pta-model-menu" role="listbox"></div></div><div id="pta-model-state" class="pta-help">模型由供应商接口实时返回。</div></div>
                         <div class="pta-drawer-actions"><button id="pta-refresh-models" class="pta-secondary">刷新模型</button><label class="pta-image-option"><input id="pta-images" type="checkbox">允许发送题目图片</label></div>
-                        <div class="pta-help">Key 只保存在当前浏览器本地。MiMo 默认开启图片输入；DeepSeek 默认关闭。图片会随题目请求发送给所选供应商。</div>
+                        <div class="pta-help">Key 只保存在当前浏览器本地。OpenCode Free 会自动探测 127.0.0.1:8788；未设置 AUTH_TOKEN 时可留空。图片会随题目请求发送给支持图片的供应商。</div>
                     </div>
                 </div>
             </div>`;
@@ -980,14 +1049,17 @@
     function syncUI() {
         applyTheme();
         var provider = PROVIDERS[state.provider], config = state.configs[state.provider];
-        var meta = document.getElementById('pta-meta'); if (meta) meta.textContent = config.apiKey ? provider.name + ' · ' + (config.model || '等待模型') : '未配置 AI';
+        var meta = document.getElementById('pta-meta'); if (meta) meta.textContent = (config.apiKey || provider.optionalKey && localRuntime.available) ? provider.name + ' · ' + (config.model || '等待模型') : '未配置 AI';
         var key = document.getElementById('pta-api-key'); if (key) key.value = config.apiKey || '';
+        var keyLabel = document.getElementById('pta-api-key-label'); if (keyLabel) keyLabel.textContent = provider.optionalKey ? '本地 Token（可选）' : 'API Key';
+        if (key) key.placeholder = provider.optionalKey ? '未设置 AUTH_TOKEN 时可留空' : '填写后自动读取模型列表';
         var model = document.getElementById('pta-model');
         if (model) {
             model.innerHTML = '';
             if (!config.models || !config.models.length) {
                 var placeholder = document.createElement('option');
-                placeholder.value = ''; placeholder.textContent = config.apiKey ? '正在等待模型列表…' : '填写 API Key 后获取';
+                placeholder.value = '';
+                placeholder.textContent = provider.optionalKey && !localRuntime.available ? '等待检测到本地代理' : (config.apiKey || provider.optionalKey ? '正在等待模型列表…' : '填写 API Key 后获取');
                 model.appendChild(placeholder); model.disabled = true;
             } else {
                     config.models.forEach(function (id) {
@@ -1002,10 +1074,18 @@
         syncModelDropdown();
         var language = document.getElementById('pta-language'); if (language) language.value = state.language || 'auto';
         syncLanguageDropdown();
-        var modelState = document.getElementById('pta-model-state'); if (modelState) { modelState.textContent = config.modelsLoading ? '正在向供应商读取模型列表…' : (config.modelError || (config.models && config.models.length ? '已读取 ' + config.models.length + ' 个可用模型。' : '填写 API Key 后自动读取模型列表。')); modelState.classList.toggle('pta-error', !!config.modelError); }
+        var modelState = document.getElementById('pta-model-state'); if (modelState) {
+            var emptyHint = provider.optionalKey && !localRuntime.available ? '未检测到本地 OpenCode Free 服务（127.0.0.1:8788）。启动后会自动出现。' : (config.models && config.models.length ? '已读取 ' + config.models.length + ' 个可用模型。' : (provider.optionalKey ? '已连接，正在读取 Free 模型列表。' : '填写 API Key 后自动读取模型列表。'));
+            modelState.textContent = config.modelsLoading ? '正在向供应商读取模型列表…' : (config.modelError || emptyHint);
+            modelState.classList.toggle('pta-error', !!config.modelError || provider.optionalKey && !localRuntime.available);
+        }
         var endpointEl = document.getElementById('pta-endpoint'); if (endpointEl) endpointEl.textContent = baseUrl(state.provider).replace('https://', '');
         var languageMode = document.getElementById('pta-language-mode'); if (languageMode) languageMode.textContent = state.language && state.language !== 'auto' ? '手动 · ' + (LANG_NAMES[state.language] || state.language) : '自动检测';
-        document.querySelectorAll('.pta-provider-card').forEach(function (card) { card.classList.toggle('active', card.dataset.provider === state.provider); });
+        document.querySelectorAll('.pta-provider-card').forEach(function (card) {
+            var isOpenCode = card.dataset.provider === 'opencode';
+            card.classList.toggle('active', card.dataset.provider === state.provider);
+            if (isOpenCode) { card.hidden = !localRuntime.available; card.disabled = !localRuntime.available; }
+        });
         var images = document.getElementById('pta-images'); if (images) { images.checked = !!config.images; images.disabled = !provider.supportsImages; }
         var skip = document.getElementById('pta-skip'); if (skip) skip.checked = state.skipAnswered;
         var continuous = document.getElementById('pta-continuous'); if (continuous) continuous.checked = state.continuous;
@@ -1041,24 +1121,24 @@
             if (!inside) closeModelDropdown();
         });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModelDropdown(); });
-        document.querySelectorAll('.pta-provider-card').forEach(function (card) { card.addEventListener('click', function () { saveSettings(); state.provider = card.dataset.provider; syncUI(); if (state.configs[state.provider].apiKey && !state.configs[state.provider].models.length) loadModels(state.provider, true); }); });
+        document.querySelectorAll('.pta-provider-card').forEach(function (card) { card.addEventListener('click', function () { if (card.dataset.provider === 'opencode' && !localRuntime.available) return; saveSettings(); state.provider = card.dataset.provider; syncUI(); if (providerReady(state.provider) && !state.configs[state.provider].models.length) loadModels(state.provider, true); }); });
         document.getElementById('pta-api-key').addEventListener('input', function () {
             var value = this.value, config = state.configs[state.provider];
             if (value.trim() !== config.apiKey) { config.models = []; config.model = ''; config.modelMeta = {}; config.modelError = ''; syncUI(); this.value = value; }
             clearTimeout(apiKeyTimer);
             var providerAtInput = state.provider;
             apiKeyTimer = setTimeout(function () {
-                if (providerAtInput === state.provider && value.trim().length >= 10) { saveSettings(); loadModels(providerAtInput, false); }
+                if (providerAtInput === state.provider && (value.trim().length >= 10 || providerAtInput === 'opencode' && localRuntime.available)) { saveSettings(); loadModels(providerAtInput, false); }
             }, 800);
         });
-        document.getElementById('pta-api-key').addEventListener('blur', function () { saveSettings(); if (state.configs[state.provider].apiKey) loadModels(state.provider, false); });
+        document.getElementById('pta-api-key').addEventListener('blur', function () { saveSettings(); if (providerReady(state.provider)) loadModels(state.provider, false); });
         document.getElementById('pta-language').addEventListener('change', function () { state.language = this.value || 'auto'; saveState(); syncUI(); log('编程语言已设为 ' + languageLabel(state.language), 'info'); });
         document.getElementById('pta-model').addEventListener('change', function () { state.configs[state.provider].model = this.value; state.configs[state.provider].modelError = ''; saveState(); syncUI(); });
         document.getElementById('pta-images').addEventListener('change', function () { state.configs[state.provider].images = this.checked; saveState(); });
         document.getElementById('pta-refresh-models').addEventListener('click', function () { saveSettings(); loadModels(state.provider, false); });
         document.getElementById('pta-drawer-save').addEventListener('click', function () { saveSettings(); drawer.classList.remove('open'); toast('设置已保存，正在读取模型'); loadModels(state.provider, false); });
         document.getElementById('pta-log-clear').addEventListener('click', function (e) { e.stopPropagation(); document.getElementById('pta-log').innerHTML = '<div class="pta-empty">记录已清空</div>'; document.getElementById('pta-log-count').textContent = '0'; });
-        document.getElementById('pta-test').addEventListener('click', async function (e) { e.stopPropagation(); saveSettings(); if (!state.configs[state.provider].apiKey) { setStatus('未配置 Key', '请先填写 API Key', ''); log('测试失败：请先配置 API Key', 'warning'); return; } toast('正在测试连接…'); try { await requestAI([{ role: 'user', content: '只回复 OK，不要输出思考过程' }], 256); toast(PROVIDERS[state.provider].name + ' 连接成功'); setStatus('连接正常', '测试通过', 'ok'); log(PROVIDERS[state.provider].name + ' 连接测试通过', 'success'); } catch (error) { toast('错误已记录到面板'); setStatus(/API Key 无效/.test(error.message) ? 'Key 错误' : '连接失败', error.message, ''); log('连接失败：' + error.message, 'warning'); } });
+        document.getElementById('pta-test').addEventListener('click', async function (e) { e.stopPropagation(); saveSettings(); if (!providerReady(state.provider)) { setStatus('未配置 Key', PROVIDERS[state.provider].optionalKey ? '请先启动本地 OpenCode Free 代理' : '请先填写 API Key', ''); log('测试失败：当前供应商尚未就绪', 'warning'); return; } toast('正在测试连接…'); try { await requestAI([{ role: 'user', content: '只回复 OK，不要输出思考过程' }], 256); toast(PROVIDERS[state.provider].name + ' 连接成功'); setStatus('连接正常', '测试通过', 'ok'); log(PROVIDERS[state.provider].name + ' 连接测试通过', 'success'); } catch (error) { toast('错误已记录到面板'); setStatus(/API Key 无效/.test(error.message) ? 'Key 错误' : '连接失败', error.message, ''); log('连接失败：' + error.message, 'warning'); } });
         document.getElementById('pta-start').addEventListener('click', function (e) { e.stopPropagation(); if (state.running) stopSolve(); else startSolve(); });
     }
 
@@ -1077,7 +1157,7 @@
 
     function loadModels(provider, silent) {
         var config = state.configs[provider];
-        if (!config || !config.apiKey) { if (!silent) toast('请先填写 API Key'); return; }
+        if (!providerReady(provider)) { if (!silent) toast(PROVIDERS[provider].optionalKey ? '请先启动本地 OpenCode Free 代理' : '请先填写 API Key'); return; }
         config.modelsLoading = true; config.modelError = ''; syncUI();
         requestModels(provider).then(function (result) {
             var models = result.ids || [];
@@ -1103,7 +1183,7 @@
 
     function startSolve() {
         saveSettings();
-        if (!state.configs[state.provider].apiKey) { toast('请先在设置中配置 API Key'); document.getElementById('pta-drawer').classList.add('open'); return; }
+        if (!providerReady(state.provider)) { toast(PROVIDERS[state.provider].optionalKey ? '请先启动本地 OpenCode Free 代理' : '请先在设置中配置 API Key'); document.getElementById('pta-drawer').classList.add('open'); return; }
         if (!state.configs[state.provider].model || !state.configs[state.provider].models.length) { toast('请先获取并选择模型'); document.getElementById('pta-drawer').classList.add('open'); loadModels(state.provider, false); return; }
         state.running = true; document.getElementById('pta-start').textContent = '停止解题'; document.getElementById('pta-start').classList.add('stop'); setStatus('正在处理', PROVIDERS[state.provider].name + ' 工作中…', 'live'); log('任务开始', 'info');
         autoSolve().catch(function (error) { log(error.message || String(error), 'warning'); toast('任务中断'); }).finally(function () { stopSolve(true); });
@@ -1113,7 +1193,9 @@
 
     function boot() {
         loadState(); render(); log('面板已就绪，进入具体题目后开始。', 'info');
-        if (state.configs[state.provider].apiKey && !state.configs[state.provider].models.length) setTimeout(function () { loadModels(state.provider, true); }, 250);
+        detectOpenCode(false);
+        localMonitorTimer = setInterval(function () { detectOpenCode(true); }, 15000);
+        if (providerReady(state.provider) && !state.configs[state.provider].models.length) setTimeout(function () { loadModels(state.provider, true); }, 250);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
