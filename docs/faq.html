@@ -39,6 +39,7 @@
     <div class="faq-list">
       <details open><summary>为什么 API Key 错误不能获取模型？</summary><p>请确认 Key 没有多余空格、供应商选项与 Key 来源一致、Base URL 正确且账户仍有额度。点击“获取模型列表”后，脚本会把错误显示在面板中。</p></details>
       <details><summary>为什么模型列表为空？</summary><p>模型列表来自供应商的模型接口，不是脚本固定写死。检查网络连接、API Key 权限、供应商地址和接口是否兼容 OpenAI 风格模型列表。</p></details>
+      <details><summary>为什么看不到 OpenCode Free？</summary><p>脚本会自动检测 <code>127.0.0.1:8788/health</code>。请先启动 OpenCode Free 本地代理，并确认端口没有被其他程序占用；启动后脚本会自动重试检测。</p></details>
       <details><summary>MiMo 和 DeepSeek 的图片上传有什么区别？</summary><p>MiMo 默认开启图片输入能力，DeepSeek 默认关闭。实际是否可用还取决于你选择的具体模型是否支持视觉输入。</p></details>
       <details><summary>为什么题干提取不完整或 AI 返回空内容？</summary><p>先检查当前是否位于真实 PTA 题目页面，再查看运行记录中的“提取题干”内容。若模型只返回推理内容，可能需要提高 token 预算或换用支持结构化输出的模型。</p></details>
       <details><summary>为什么出现“响应不是有效 JSON”？</summary><p>可能是模型没有按照提示词返回 JSON、模型的推理内容占满预算，或供应商对响应格式支持不一致。建议先提高 token 预算、换模型，并检查实际响应记录。</p></details>

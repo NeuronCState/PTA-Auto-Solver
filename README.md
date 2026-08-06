@@ -6,13 +6,13 @@
 
 <p align="center">
   <a href="https://neuroncstate.github.io/PTA-Auto-Solver/">项目主页</a> ·
-  <a href="./PTA%20Auto%20Solver%20Pro-1.5.0.user.js">安装脚本</a> ·
+  <a href="./PTA%20Auto%20Solver%20Pro-1.6.0.user.js">安装脚本</a> ·
   <a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues">反馈问题</a>
 </p>
 
 PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上的 Tampermonkey AI 辅助答题脚本，也可作为 PTA 脚本、PTA 自动答题或 PTA 自动刷题工具被检索。它读取当前题目上下文，调用你选择的 AI 供应商，把结果写入 PTA 编辑器，并在提交后读取评分。
 
-> 当前版本：`1.5.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
+> 当前版本：`1.6.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
 
 ## 先看界面
 
@@ -42,7 +42,7 @@ PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上�
 ## 3 分钟开始使用
 
 1. 安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/) 并点击“安装 / 更新脚本”，或直接打开 [PTA Auto Solver Pro-1.5.0.user.js](./PTA%20Auto%20Solver%20Pro-1.5.0.user.js)。
+2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/) 并点击“安装 / 更新脚本”，或直接打开 [PTA Auto Solver Pro-1.6.0.user.js](./PTA%20Auto%20Solver%20Pro-1.6.0.user.js)。
 3. 在 Tampermonkey 确认安装，刷新 PTA 页面。
 4. 登录 PTA 并进入**具体题目页面**；右下角会出现脚本面板。
 5. 点击面板右上角设置，选择供应商、填写 API Key、等待模型列表加载，然后点击“测试”。
@@ -57,8 +57,9 @@ PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上�
 | DeepSeek | 关闭 | Bearer Token | 文字 / 代码 |
 | MiMo | 开启 | `api-key` 请求头 | 推理 / 代码 |
 | OpenRouter | 关闭 | Bearer Token | 聚合多供应商，Free 模型置顶 |
+| OpenCode Free | 关闭 | 本地 Bearer Token（可选） | 自动探测 `127.0.0.1:8788`，仅显示代理返回的 Free 模型 |
 
-模型名称不会固定写死：填写 API Key 后，脚本请求对应的 `/models` 接口并展示可用模型。OpenRouter 的 Free 模型会优先显示，并在名称后标注 `· Free`。
+模型名称不会固定写死：填写 API Key 后，脚本请求对应的 `/models` 接口并展示可用模型。OpenRouter 的 Free 模型会优先显示，并在名称后标注 `· Free`。启动 OpenCode Free 本地代理后，脚本会自动探测端口并显示该供应商，Token 未设置时可以留空。
 
 API Key 仅保存在当前浏览器的本地配置中；脚本不将 Key 上传到自建服务器，但会按所选供应商 API 的要求发送给该供应商。
 
