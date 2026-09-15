@@ -6,13 +6,13 @@
 
 <p align="center">
   <a href="https://neuroncstate.github.io/PTA-Auto-Solver/">项目主页</a> ·
-  <a href="./PTA%20Auto%20Solver%20Pro-1.6.0.user.js">安装脚本</a> ·
+  <a href="https://scriptcat.org/zh-CN/script-show-page/7287">安装脚本</a> ·
   <a href="https://github.com/NeuronCState/PTA-Auto-Solver/issues">反馈问题</a>
 </p>
 
 PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上的 Tampermonkey AI 辅助答题脚本，也可作为 PTA 脚本、PTA 自动答题或 PTA 自动刷题工具被检索。它读取当前题目上下文，调用你选择的 AI 供应商，把结果写入 PTA 编辑器，并在提交后读取评分。
 
-> 当前版本：`1.6.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
+> 当前版本：`1.8.0` · 作者：`NeuronCState` · 仅匹配 `https://pintia.cn/*`
 
 ## 先看界面
 
@@ -30,6 +30,7 @@ PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上�
 - 非满分时最多自动重答 1 次；开启“连续答题”后，满分会进入下一题。
 - 提供自动检测、C、C++、Python、Java、Pascal 五种语言选择。
 - 统一控制脚本面板与 PTA 页面的浅色 / 深色主题，并展示真实题目进度与运行记录。
+- 支持最小化为 58px PAS 悬浮胶囊，带有首字母连续形变位移动效；任务执行期间提供柔和的中轴自转混色流光与文字处理状态指示。
 
 ## 解题流程
 
@@ -42,24 +43,24 @@ PTA Auto Solver 是运行在 [拼题 A（PTA）](https://pintia.cn/) 页面上�
 ## 3 分钟开始使用
 
 1. 安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 [项目主页](https://neuroncstate.github.io/PTA-Auto-Solver/) 并点击“安装 / 更新脚本”，或直接打开 [PTA Auto Solver Pro-1.6.0.user.js](./PTA%20Auto%20Solver%20Pro-1.6.0.user.js)。
+2. 打开 [ScriptCat 脚本主页](https://scriptcat.org/zh-CN/script-show-page/7287) 点击“安装脚本”，或直接打开 [PTA Auto Solver Pro-1.8.0.user.js](./PTA%20Auto%20Solver%20Pro-1.8.0.user.js)。
 3. 在 Tampermonkey 确认安装，刷新 PTA 页面。
 4. 登录 PTA 并进入**具体题目页面**；右下角会出现脚本面板。
-5. 点击面板右上角设置，选择供应商、填写 API Key、等待模型列表加载，然后点击“测试”。
+5. 点击面板右上角设置，选择供应商、填写 API Key、等待模型列表加载（设置项实时自动保存，无需手动保存），然后点击“测试”。
 6. 在首页确认编程语言与开关，点击“开始解题”。需要停止时点击“停止解题”。
 
 如果浏览器没有自动跳到安装页，可在 Tampermonkey 控制面板选择“添加新脚本”或“导入”，再导入 `.user.js` 文件。
 
 ## 模型与配置
 
-| 供应商 | 图片输入默认值 | 鉴权方式 | 特性 |
-| --- | --- | --- | --- |
-| DeepSeek | 关闭 | Bearer Token | 文字 / 代码 |
-| MiMo | 开启 | `api-key` 请求头 | 推理 / 代码 |
-| OpenRouter | 关闭 | Bearer Token | 聚合多供应商，Free 模型置顶 |
-| OpenCode Free | 关闭 | 本地 Bearer Token（可选） | 自动探测 `127.0.0.1:8788`，仅显示代理返回的 Free 模型 |
+| 供应商 | 定位与描述 | 图片输入默认值 | 鉴权方式 | 特性 |
+| --- | --- | --- | --- | --- |
+| DeepSeek | 全能快速模型 | 关闭（可开启） | Bearer Token | 官方 API 直连 · 代码生成与逻辑推导准确迅速 · 支持图片输入 |
+| MiMo | 全能性价比模型 | 开启 | `api-key` 请求头 | 小米官方高性价比推理模型 · 视觉多模态与长上下文 |
+| Opencode Zen | 免费模型 | 关闭（可开启） | Bearer Token | Opencode 官方网关 · 内置免费模型（`*-free`、`big-pickle`）置顶展示 |
+| OpenCode Free | 本地免费模型 | 关闭 | 本地 Bearer Token（可选） | 自动探测 `127.0.0.1:8788` · 本地服务免外网 Key · 仅展示 Free 模型 |
 
-模型名称不会固定写死：填写 API Key 后，脚本请求对应的 `/models` 接口并展示可用模型。OpenRouter 的 Free 模型会优先显示，并在名称后标注 `· Free`。启动 OpenCode Free 本地代理后，脚本会自动探测端口并显示该供应商，Token 未设置时可以留空。
+模型名称不会固定写死：填写 API Key 后，脚本请求对应的 `/models` 接口并展示可用模型。Opencode Zen 的 Free 模型（`*-free`、`big-pickle`）会优先显示，并在名称后标注 `· Free`，支持图片输入取决于模型能力。DeepSeek 已开放图片输入开关，可自行开启。启动 OpenCode Free 本地代理后，脚本会自动探测端口并显示该供应商，Token 未设置时可以留空。
 
 API Key 仅保存在当前浏览器的本地配置中；脚本不将 Key 上传到自建服务器，但会按所选供应商 API 的要求发送给该供应商。
 
@@ -70,7 +71,9 @@ API Key 仅保存在当前浏览器的本地配置中；脚本不将 Key 上传�
 - **自动检测语言**：依据题目标题、接口与代码内容判断；也可手动指定 C、C++、Python、Java 或 Pascal。
 - **主题切换**：面板顶部月亮 / 太阳按钮会同步切换 PTA 页面、面板、设置抽屉与下拉框主题；选择会在浏览器中保存。
 
-编程题的请求预算为 `32768` tokens，普通题为 `2048` tokens，连接测试为 `256` tokens。
+- **Max Token 视觉分级调节**：自动根据所选模型的上下文上限动态适配滑动范围（2K ~ 1M），并提供阶梯预设与模型最大上限标注。
+- **思考强度（Thinking）分级**：支持 0 级（关闭）、1 级（低 · 快速）、2 级（中 · 推荐）、3 级（高 · 深度推理），满足不同题型的推理深度需求。
+- **实时自动保存**：设置面板内的任何变更（密钥、模型、开关与滑动条）均在操作瞬间自动持久化至当前浏览器，无需手动点击保存。
 
 ## 支持范围
 
@@ -114,7 +117,7 @@ API Key 仅保存在当前浏览器的本地配置中；脚本不将 Key 上传�
 
 ## 权限与验证
 
-脚本使用 `GM_xmlhttpRequest` 请求模型列表和聊天接口，使用 `GM_setClipboard` 在编辑器无法直接写入时复制答案到剪贴板；仅允许连接 `api.deepseek.com`、`api.xiaomimimo.com` 与 `openrouter.ai`。
+脚本使用 `GM_xmlhttpRequest` 请求模型列表和聊天接口，使用 `GM_setClipboard` 在编辑器无法直接写入时复制答案到剪贴板；仅允许连接 `api.deepseek.com`、`api.xiaomimimo.com`、`opencode.ai` 以及本地代理 `127.0.0.1:8788`（localhost）。
 
 - JavaScript 语法检查已通过。
 - 已在真实 PTA 函数题页验证：代码写入、提交、等待评分、读取 `20 / 20`，以及满分后进入下一题。
