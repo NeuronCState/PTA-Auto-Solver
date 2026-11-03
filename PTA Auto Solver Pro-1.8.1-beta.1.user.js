@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.2
+// @version      1.8.1-beta.3
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -1253,7 +1253,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="pta-field"><label><input id="pta-diagnostic-toggle" type="checkbox">记录页面诊断（默认关闭）</label><div id="pta-diagnostic-status">诊断已关闭 · 0 条</div><div class="pta-help">仅内存保存，刷新即清除；最多20条/4MB/5分钟，每秒最多一条。包含页面文字、URL路径及动态弹窗，尽力脱敏但不能保证，请检查后再分享。不会自动上传。</div><button id="pta-diagnostic-export" type="button" class="pta-secondary">导出诊断</button> <button id="pta-diagnostic-clear" type="button" class="pta-secondary">清除诊断</button></div><div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
+                        <div class="pta-field"><label><input id="pta-diagnostic-toggle" type="checkbox">记录页面诊断（默认关闭）</label><div id="pta-diagnostic-status">诊断已关闭 · 0 条</div><div class="pta-help">仅内存保存，刷新即清除；滚动保留最新20条/4MB，5分钟后停止，每秒最多一条。包含页面文字、URL路径及动态弹窗，尽力脱敏但不能保证，请检查后再分享。不会自动上传。</div><button id="pta-diagnostic-export" type="button" class="pta-secondary">导出诊断</button> <button id="pta-diagnostic-clear" type="button" class="pta-secondary">清除诊断</button></div><div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
                     </div>
                 </div>
             </div>
@@ -1645,13 +1645,18 @@
     }
     function captureDiagnostic(reason) {
         if (!diagnostics.enabled || location.hostname !== 'pintia.cn' || location.protocol !== 'https:') { stopDiagnostics(); return; }
-        if (diagnostics.records.length >= 20) { stopDiagnostics(); return; }
         var html = diagnosticHTML();
         var entry = { time: new Date().toISOString(), reason: reason, url: diagnosticURL(location.href), html: html, possiblyTruncated: html.length >= 400000 };
         var bytes = new Blob([JSON.stringify(entry)]).size;
-        if (diagnostics.bytes + bytes > 4 * 1024 * 1024) { stopDiagnostics(); return; }
+        var previous = diagnostics.records[diagnostics.records.length - 1];
+        if (previous && previous.url === entry.url && previous.html === entry.html) return;
+        // Keep the latest state instead of stopping before a slow judge finishes.
+        // Evict oldest snapshots to preserve strict memory/count bounds.
+        if (bytes > 4 * 1024 * 1024) return;
+        while (diagnostics.records.length && (diagnostics.records.length >= 20 || diagnostics.bytes + bytes > 4 * 1024 * 1024)) {
+            diagnostics.bytes -= new Blob([JSON.stringify(diagnostics.records.shift())]).size;
+        }
         diagnostics.records.push(entry); diagnostics.bytes += bytes; diagnosticStatus();
-        if (diagnostics.records.length >= 20) stopDiagnostics();
     }
     function scheduleDiagnostic(reason) {
         if (!diagnostics.enabled || diagnostics.timer) return;
@@ -1660,7 +1665,6 @@
     function startDiagnostics() {
         stopDiagnostics();
         if (location.hostname !== 'pintia.cn' || location.protocol !== 'https:') return;
-        if (diagnostics.records.length >= 20 || diagnostics.bytes >= 4 * 1024 * 1024) { toast('诊断记录已达上限，请先导出或清除'); return; }
         diagnostics.enabled = true; diagnostics.lastURL = location.href;
         diagnostics.observer = new MutationObserver(function (mutations) {
             if (mutations.some(function (change) {
@@ -1668,11 +1672,11 @@
                 return node && !node.closest('#pta-root') && !node.closest('script, style');
             })) scheduleDiagnostic('page mutation');
         });
-        diagnostics.observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'role', 'aria-hidden', 'hidden'] });
+        diagnostics.observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'role', 'aria-hidden', 'hidden'] });
         diagnostics.routeTimer = setInterval(function () {
             if (location.href !== diagnostics.lastURL) { diagnostics.lastURL = location.href; scheduleDiagnostic('SPA navigation'); }
         }, 1000);
-        diagnostics.endTimer = setTimeout(stopDiagnostics, 5 * 60 * 1000);
+        diagnostics.endTimer = setTimeout(function () { captureDiagnostic('recording time limit'); stopDiagnostics(); }, 5 * 60 * 1000);
         captureDiagnostic('recording enabled');
     }
     function exportDiagnostics() {
