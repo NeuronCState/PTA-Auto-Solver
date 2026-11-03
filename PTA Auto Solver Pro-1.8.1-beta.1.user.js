@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.1
+// @version      1.8.1-beta.2
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -1211,7 +1211,7 @@
         var style = document.createElement('style'); style.id = 'pta-style'; style.textContent = CSS; document.head.appendChild(style);
         var root = document.createElement('div'); root.id = 'pta-root';
         root.innerHTML = `
-            <div id="pta-shell" class="collapsed">
+            <span id="pta-diagnostic-badge" hidden style="position:absolute;bottom:100%;right:0;white-space:nowrap;background:#b42318;color:white;padding:4px 8px;border-radius:6px">页面诊断正在记录</span><div id="pta-shell" class="collapsed">
                 <div class="pta-top">
                     <div class="pta-brand"><div class="pta-brand-copy"><div class="pta-brand-title" id="pta-brand-title"><span class="pta-pas-letter pta-pas-p">P</span><span class="pta-pas-rest">TA</span><span class="pta-pas-space">&nbsp;</span><span class="pta-pas-letter pta-pas-a">A</span><span class="pta-pas-rest">uto</span><span class="pta-pas-space">&nbsp;</span><span class="pta-pas-letter pta-pas-s">S</span><span class="pta-pas-rest">olver</span></div><div class="pta-brand-meta" id="pta-meta">未配置 AI</div></div></div>
                     <div class="pta-top-actions"><button class="pta-icon-btn" id="pta-theme-toggle" title="切换深色" aria-label="切换深色">☾</button><button class="pta-icon-btn" id="pta-settings" title="设置">⚙</button><button class="pta-icon-btn" id="pta-collapse" title="收起">×</button></div>
@@ -1253,7 +1253,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
+                        <div class="pta-field"><label><input id="pta-diagnostic-toggle" type="checkbox">记录页面诊断（默认关闭）</label><div id="pta-diagnostic-status">诊断已关闭 · 0 条</div><div class="pta-help">仅内存保存，刷新即清除；最多20条/4MB/5分钟，每秒最多一条。包含页面文字、URL路径及动态弹窗，尽力脱敏但不能保证，请检查后再分享。不会自动上传。</div><button id="pta-diagnostic-export" type="button" class="pta-secondary">导出诊断</button> <button id="pta-diagnostic-clear" type="button" class="pta-secondary">清除诊断</button></div><div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
                     </div>
                 </div>
             </div>
@@ -1400,6 +1400,9 @@
     }
 
     function bindUI(root) {
+        document.getElementById('pta-diagnostic-toggle').addEventListener('change', function () { if (this.checked) startDiagnostics(); else stopDiagnostics(); });
+        document.getElementById('pta-diagnostic-export').addEventListener('click', exportDiagnostics);
+        document.getElementById('pta-diagnostic-clear').addEventListener('click', function () { stopDiagnostics(); diagnostics.records = []; diagnostics.bytes = 0; diagnosticStatus(); });
         var shell = document.getElementById('pta-shell'), drawer = document.getElementById('pta-drawer');
         var apiKeyTimer = null;
         var saveHintTimer = null;
@@ -1584,6 +1587,100 @@
     }
 
     function stopSolve(completed) { state.running = false; var shell = document.getElementById('pta-shell'); if (shell) shell.classList.remove('running'); var root = document.getElementById('pta-root'); if (root) root.classList.remove('running'); var button = document.getElementById('pta-start'); if (button) { button.textContent = '开始解题'; button.classList.remove('stop'); } setQuestionProgress(completed ? '已完成' : '已停止', 1, 1); setStatus(completed ? '已完成' : '已停止', completed ? '评分与答题流程已结束' : '任务已暂停', completed ? 'ok' : ''); }
+
+    // Opt-in diagnostics: memory only, bounded, never transmitted automatically.
+    var diagnostics = { enabled: false, records: [], bytes: 0, observer: null, timer: null, routeTimer: null, endTimer: null, lastURL: '' };
+    function diagnosticURL(value) {
+        try {
+            var url = new URL(value, location.href);
+            if (url.protocol !== 'https:' || url.hostname !== 'pintia.cn') return '[external URL removed]';
+            return url.origin + url.pathname; // Strip every query value and fragment, not just known token names.
+        } catch (e) { return '[invalid URL removed]'; }
+    }
+    function diagnosticRedact(value) {
+        return String(value).replace(/https?:\/\/[^\s<>"']+/gi, diagnosticURL).replace(/Bearer\s+[\w.+/=-]+/gi, 'Bearer [REDACTED]')
+            .replace(/\b(?:sk-|sk_)[A-Za-z0-9_-]{8,}/g, '[REDACTED KEY]')
+            .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED TOKEN]')
+            .replace(/((?:password|passwd|token|secret|api[_ -]?key)\s*[:=]\s*)[^\s,;<>]+/gi, '$1[REDACTED]');
+    }
+    function diagnosticHTML() {
+        // Bound traversal work before copying a potentially unbounded application DOM.
+        if (document.getElementsByTagName('*').length > 12000) return '[snapshot skipped: DOM exceeds 12000 nodes]';
+        var clone = document.documentElement.cloneNode(true);
+        var originals = document.documentElement.querySelectorAll('*');
+        var copies = clone.querySelectorAll('*');
+        originals.forEach(function (node, index) {
+            if (/password|passwd|token|secret|api.?key|csrf|credential/i.test((node.id || '') + ' ' + (node.getAttribute('name') || '')) || (!/^(HTML|HEAD|BODY)$/.test(node.tagName) && !node.getClientRects().length)) copies[index].remove();
+        });
+        clone.querySelectorAll('#pta-root, script, style, iframe, frame, object, embed, link, meta, noscript, [hidden], [aria-hidden="true"], input, textarea, select, .cm-content, .monaco-editor, [contenteditable]').forEach(function (node) { node.remove(); });
+        clone.querySelectorAll('*').forEach(function (node) {
+            // Retain structural diagnostics, not arbitrary application data attributes.
+            Array.from(node.attributes).forEach(function (attr) {
+                if (/^(href|src|action)$/i.test(attr.name)) node.setAttribute(attr.name, diagnosticURL(attr.value));
+                else if (!/^(id|class|role|aria-label|aria-modal|aria-live|colspan|rowspan|type)$/i.test(attr.name)) node.removeAttribute(attr.name);
+                else node.setAttribute(attr.name, diagnosticRedact(attr.value));
+            });
+        });
+        Array.from(clone.attributes).forEach(function (attr) { clone.removeAttribute(attr.name); });
+        var walker = document.createTreeWalker(clone, NodeFilter.SHOW_COMMENT);
+        var comments = [], comment;
+        while ((comment = walker.nextNode())) comments.push(comment);
+        comments.forEach(function (node) { node.remove(); });
+        return diagnosticRedact(clone.outerHTML).slice(0, 400000);
+    }
+    function diagnosticStatus() {
+        var label = document.getElementById('pta-diagnostic-status');
+        if (label) label.textContent = (diagnostics.enabled ? '正在记录页面诊断 · ' : '诊断已关闭 · ') + diagnostics.records.length + ' 条';
+        var badge = document.getElementById('pta-diagnostic-badge');
+        if (badge) badge.hidden = !diagnostics.enabled;
+        var toggle = document.getElementById('pta-diagnostic-toggle');
+        if (toggle) toggle.checked = diagnostics.enabled;
+    }
+    function stopDiagnostics() {
+        diagnostics.enabled = false;
+        if (diagnostics.observer) diagnostics.observer.disconnect();
+        clearTimeout(diagnostics.timer); clearTimeout(diagnostics.endTimer); clearInterval(diagnostics.routeTimer);
+        diagnostics.timer = diagnostics.routeTimer = diagnostics.endTimer = null;
+        diagnosticStatus();
+    }
+    function captureDiagnostic(reason) {
+        if (!diagnostics.enabled || location.hostname !== 'pintia.cn' || location.protocol !== 'https:') { stopDiagnostics(); return; }
+        if (diagnostics.records.length >= 20) { stopDiagnostics(); return; }
+        var html = diagnosticHTML();
+        var entry = { time: new Date().toISOString(), reason: reason, url: diagnosticURL(location.href), html: html, possiblyTruncated: html.length >= 400000 };
+        var bytes = new Blob([JSON.stringify(entry)]).size;
+        if (diagnostics.bytes + bytes > 4 * 1024 * 1024) { stopDiagnostics(); return; }
+        diagnostics.records.push(entry); diagnostics.bytes += bytes; diagnosticStatus();
+        if (diagnostics.records.length >= 20) stopDiagnostics();
+    }
+    function scheduleDiagnostic(reason) {
+        if (!diagnostics.enabled || diagnostics.timer) return;
+        diagnostics.timer = setTimeout(function () { diagnostics.timer = null; captureDiagnostic(reason); }, 1000);
+    }
+    function startDiagnostics() {
+        stopDiagnostics();
+        if (location.hostname !== 'pintia.cn' || location.protocol !== 'https:') return;
+        if (diagnostics.records.length >= 20 || diagnostics.bytes >= 4 * 1024 * 1024) { toast('诊断记录已达上限，请先导出或清除'); return; }
+        diagnostics.enabled = true; diagnostics.lastURL = location.href;
+        diagnostics.observer = new MutationObserver(function (mutations) {
+            if (mutations.some(function (change) {
+                var node = change.target.nodeType === 1 ? change.target : change.target.parentElement;
+                return node && !node.closest('#pta-root') && !node.closest('script, style');
+            })) scheduleDiagnostic('page mutation');
+        });
+        diagnostics.observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'role', 'aria-hidden', 'hidden'] });
+        diagnostics.routeTimer = setInterval(function () {
+            if (location.href !== diagnostics.lastURL) { diagnostics.lastURL = location.href; scheduleDiagnostic('SPA navigation'); }
+        }, 1000);
+        diagnostics.endTimer = setTimeout(stopDiagnostics, 5 * 60 * 1000);
+        captureDiagnostic('recording enabled');
+    }
+    function exportDiagnostics() {
+        var data = { format: 'pta-diagnostics-v1', warning: 'Best-effort redaction only. Review before sharing; may contain questions, scores and personal text.', records: diagnostics.records };
+        var url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+        var link = document.createElement('a'); link.href = url; link.download = 'pta-diagnostics-' + Date.now() + '.json'; link.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
 
     function boot() {
         loadState(); render(); log('面板已就绪，进入具体题目后开始。', 'info');
