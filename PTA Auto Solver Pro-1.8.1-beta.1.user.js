@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.5
+// @version      1.8.1-beta.6
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -62,6 +62,7 @@
     var QUESTION_TYPES = { '1': 'judge', '2': 'choice', '3': 'multi_choice', '4': 'fill', '5': 'program_fill', '6': 'function', '7': 'programming' };
     var state = {
         running: false,
+        runId: 0,
         provider: 'deepseek',
         configs: {
             deepseek: { apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false, maxTokens: 2048, thinking: 2 },
@@ -71,9 +72,12 @@
         },
         skipAnswered: true,
         continuous: true,
+        concurrentEnabled: false,
+        concurrency: 3,
         language: 'auto',
         theme: 'light'
     };
+    var activeSolveController = null;
     var localRuntime = { available: false, checking: false, baseUrl: PROVIDERS.opencode.baseUrl };
     var localMonitorTimer = null;
 
@@ -84,7 +88,15 @@
         } catch (e) { return fallback; }
     }
 
+    function normalizeConcurrency(value) {
+        var count = Number(value);
+        if (value == null || value === '' || !Number.isFinite(count)) return 3;
+        return Math.max(1, Math.min(10, Math.round(count)));
+    }
+
     function saveState() {
+        state.concurrentEnabled = state.concurrentEnabled === true;
+        state.concurrency = normalizeConcurrency(state.concurrency);
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
     }
 
@@ -105,6 +117,8 @@
             state.configs.opencode = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false, maxTokens: 2048, thinking: 2 }, state.configs.opencode || {});
             state.skipAnswered = saved.skipAnswered !== false;
             state.continuous = saved.continuous !== false;
+            state.concurrentEnabled = saved.concurrentEnabled === true;
+            state.concurrency = normalizeConcurrency(saved.concurrency);
             state.language = ['auto', 'c', 'cpp', 'python', 'java', 'pascal'].indexOf(saved.language) >= 0 ? saved.language : 'auto';
             state.theme = saved.theme === 'dark' ? 'dark' : 'light';
             return;
@@ -554,7 +568,7 @@
 
     function groupFillInputs() {
         var inputs = queryAll('input').filter(function (input) {
-            return !/hidden|radio|checkbox|button|submit|file|password|image/i.test(input.type || '') && !editorForInput(input);
+            return !(input.closest && input.closest('#pta-root')) && !/hidden|radio|checkbox|button|submit|file|password|image|range|color/i.test(input.type || '') && !editorForInput(input);
         });
         var groups = [];
         inputs.forEach(function (input) {
@@ -784,15 +798,21 @@
         return false;
     }
 
-    function requestAI(messages, maxTokens, thinking) {
+    function requestAI(messages, maxTokens, thinking, signal) {
         var provider = PROVIDERS[state.provider];
         var config = state.configs[state.provider];
         return new Promise(function (resolve, reject) {
+            var handle, settled = false;
+            function cleanup() { if (signal) signal.removeEventListener('abort', cancel); }
+            function succeed(value) { if (!settled) { settled = true; cleanup(); resolve(value); } }
+            function fail(error) { if (!settled) { settled = true; cleanup(); reject(error); } }
+            function cancel() { if (handle && handle.abort) { try { handle.abort(); } catch (e) {} } fail(new Error('请求已停止')); }
+            if (signal && signal.aborted) { fail(new Error('请求已停止')); return; }
             if (!providerReady(state.provider)) {
-                reject(new Error(provider.optionalKey ? '未检测到 OpenCode Free 本地代理（127.0.0.1:8788）' : '请先配置 ' + provider.name + ' API Key'));
+                fail(new Error(provider.optionalKey ? '未检测到 OpenCode Free 本地代理（127.0.0.1:8788）' : '请先配置 ' + provider.name + ' API Key'));
                 return;
             }
-            if (!config.model) { reject(new Error('请先获取并选择一个模型')); return; }
+            if (!config.model) { fail(new Error('请先获取并选择一个模型')); return; }
             var tVal = thinking !== undefined ? thinking : (config.thinking !== undefined ? config.thinking : 2);
             var body = {
                 model: config.model,
@@ -815,27 +835,28 @@
                 }
             }
             var headers = authHeaders(state.provider, config.apiKey, 'POST');
-            GM_xmlhttpRequest({
+            handle = GM_xmlhttpRequest({
                 method: 'POST', url: endpoint(state.provider), headers: headers,
                 data: JSON.stringify(body), timeout: 120000,
                 onload: function (response) {
                     var data;
-                    try { data = parseJsonResponse(response, 'AI 响应'); } catch (error) { reject(error); return; }
+                    try { data = parseJsonResponse(response, 'AI 响应'); } catch (error) { fail(error); return; }
                     if (response.status < 200 || response.status >= 300) {
-                        reject(new Error(apiError('AI 请求失败', response.status, data))); return;
+                        fail(new Error(apiError('AI 请求失败', response.status, data))); return;
                     }
                     var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
                     if (Array.isArray(content)) content = content.map(function (item) { return item.text || ''; }).join('');
                     if (!content) {
-                        reject(new Error(data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.reasoning_content ? 'AI 返回为空：本次只返回了推理内容，建议在设置中调大 Max Token 或降低思考强度' : 'AI 返回为空：请检查模型是否支持当前请求'));
+                        fail(new Error(data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.reasoning_content ? 'AI 返回为空：本次只返回了推理内容，建议在设置中调大 Max Token 或降低思考强度' : 'AI 返回为空：请检查模型是否支持当前请求'));
                         return;
                     }
-                    resolve(String(content).trim());
+                    succeed(String(content).trim());
                 },
-                onerror: function () { reject(new Error('AI 请求失败：网络请求失败，请检查网络、脚本连接权限或 API Key')); },
-                ontimeout: function () { reject(new Error('AI 请求失败：请求超时（120 秒）')); },
-                onabort: function () { reject(new Error('AI 请求失败：请求被中止')); }
+                onerror: function () { fail(new Error('AI 请求失败：网络请求失败，请检查网络、脚本连接权限或 API Key')); },
+                ontimeout: function () { fail(new Error('AI 请求失败：请求超时（120 秒）')); },
+                onabort: function () { fail(new Error('AI 请求失败：请求被中止')); }
             });
+            if (signal && !settled) { signal.addEventListener('abort', cancel, { once: true }); if (signal.aborted) cancel(); }
         });
     }
 
@@ -860,7 +881,7 @@
                 return { type: 'image_url', image_url: { url: src } };
             }));
         }
-        return requestAI([{ role: 'system', content: system }, { role: 'user', content: userContent }], maxTokens, thinking);
+        return requestAI([{ role: 'system', content: system }, { role: 'user', content: userContent }], maxTokens, thinking, activeSolveController && activeSolveController.signal);
     }
 
     function log(message, level) {
@@ -896,7 +917,140 @@
     function goNext() { var button = nextButton(); if (button) { button.click(); return true; } return false; }
     function lastPage() { return !nextButton() || /完成考试|提交试卷|考试结束|查看成绩/.test(textOf(document.body)); }
 
+    function typeRoute(href) {
+        try {
+            var url = new URL(href, location.href);
+            var match = url.pathname.match(/^\/problem-sets\/([^/]+)\/exam\/problems\/type\/([1-7])\/?$/);
+            return match ? { origin: url.origin, set: match[1], id: match[2], path: url.pathname.replace(/\/$/, ''), url: url.href } : null;
+        } catch (error) { return null; }
+    }
+
+    function nextTypeLink(visited) {
+        var current = typeRoute(location.href);
+        if (!current) return null;
+        var names = { '1': '判断题', '2': '单选题', '3': '多选题', '4': '填空题', '5': '程序填空题|程序填空', '6': '函数题', '7': '编程题' };
+        var seen = {}, links = [];
+        queryAll('a[href]').forEach(function (link) {
+            var route = typeRoute(link.href || link.getAttribute('href'));
+            if (!route || route.origin !== current.origin || route.set !== current.set || seen[route.id]) return;
+            // Require the type-summary label. Numbered question links share this
+            // route and must not be mistaken for a new type or a new exam.
+            var match = textOf(link).match(new RegExp('^\\s*(?:' + names[route.id] + ')\\s*(\\d+)\\s*/\\s*(\\d+)\\s*$'));
+            if (!match) return;
+            seen[route.id] = true;
+            links.push({ link: link, route: route, answered: Number(match[1]), total: Number(match[2]) });
+        });
+        var index = links.findIndex(function (entry) { return entry.route.id === current.id; });
+        if (index < 0) return null;
+        return links.slice(index + 1).find(function (entry) {
+            return entry.total > 0 && entry.answered < entry.total && !(visited && visited[entry.route.id]) &&
+                !entry.link.disabled && entry.link.getAttribute('aria-disabled') !== 'true';
+        }) || null;
+    }
+
+    function typePageFingerprint(type) {
+        var nodes;
+        if (type === 'judge' || type === 'choice' || type === 'multi_choice') nodes = collectGroups().map(function (group) { return group.problem; });
+        else if (type === 'fill') nodes = groupFillInputs().map(function (group) { return group.problem; });
+        else if (type === 'program_fill') nodes = groupProgramFills().map(function (group) { return group.problem; });
+        else nodes = queryAll('.rendered-markdown').filter(function (node) { return !(node.closest && node.closest('#pta-root')); });
+        nodes = nodes.filter(function (node) { return node && !(node.closest && node.closest('#pta-root')); });
+        return { nodes: nodes, text: nodes.map(textOf).join('\n') };
+    }
+
+    async function goNextType(visited, runId) {
+        if (!state.running || state.runId !== runId || !isContinuous() || state.pageErrors) return false;
+        var target = nextTypeLink(visited);
+        if (!target) return false;
+        var beforeURL = location.href, before = typePageFingerprint(detectType());
+        visited[target.route.id] = true; // Never retry a failed click or wrap around.
+        target.link.click();
+        var start = Date.now(), stable = 0, last = '';
+        while (Date.now() - start < 10000 && state.running && state.runId === runId && isContinuous()) {
+            var route = typeRoute(location.href);
+            if (location.href !== beforeURL && (!route || route.origin !== target.route.origin || route.set !== target.route.set || route.id !== target.route.id)) break;
+            if (route && route.id === target.route.id) {
+                var fingerprint = typePageFingerprint(QUESTION_TYPES[target.route.id]);
+                var changed = fingerprint.nodes.length && (fingerprint.text !== before.text || fingerprint.nodes.some(function (node) { return before.nodes.indexOf(node) < 0; }));
+                if (changed) {
+                    stable = fingerprint.text === last ? stable + 1 : 0;
+                    last = fingerprint.text;
+                    if (stable >= 2) { log('当前题型完成，切换到下一题型', 'success'); return true; }
+                }
+            }
+            await sleep(200);
+        }
+        if (state.running && state.runId === runId) state.pageErrors = true;
+        log('题型切换未完成或已停止，未继续填写', 'warning');
+        return false;
+    }
+
     function questionProgress() {
+        var saved = savedQuestionProgress();
+        var page = localProgressPage();
+        if (!localAnswerProgress || localAnswerProgress.page !== page) {
+            localAnswerProgress = { page: page, generation: ++localProgressGeneration, current: null, total: null, written: new Set(), objectIds: new WeakMap(), nextId: 0 };
+        }
+        // Programming pages keep their existing ordinal/score progress. The
+        // local answered counter only applies to question groups (types 1–5).
+        if (!/\/exam\/problems\/type\/[1-5](?:[/?#]|$)/.test(page)) return saved;
+        if (!saved) return localAnswerProgress.total === null ? null : { current: localAnswerProgress.current, total: localAnswerProgress.total };
+        if (localAnswerProgress.total !== null && localAnswerProgress.total !== saved.total) {
+            // A changed question list is a new baseline even on the same URL.
+            localAnswerProgress = { page: page, generation: ++localProgressGeneration, current: null, total: null, written: new Set(), objectIds: new WeakMap(), nextId: 0 };
+        }
+        // A save makes the sidebar catch up; it is not another batch of answers.
+        // Keep a logical count, taking the maximum rather than adding saved + local.
+        localAnswerProgress.current = Math.min(saved.total, Math.max(saved.current, localAnswerProgress.current === null ? saved.current : localAnswerProgress.current));
+        localAnswerProgress.total = saved.total;
+        return { current: localAnswerProgress.current, total: saved.total };
+    }
+
+    // Deliberately memory-only: reload must discard unsaved increments and read
+    // the server-backed sidebar again. Restarting a run on this page must not.
+    var localAnswerProgress = null;
+    var localProgressGeneration = 0;
+
+    function localProgressPage() { return String(location.href || '').split('#')[0]; }
+
+    function captureInitialProgress() {
+        questionProgress();
+        return { page: localAnswerProgress.page, generation: localAnswerProgress.generation };
+    }
+
+    function localQuestionKey(problem) {
+        if (!problem) return '';
+        var id = problem.getAttribute && (problem.getAttribute('data-problem-id') || problem.getAttribute('data-question-id') || problem.getAttribute('id'));
+        if (id) return 'id:' + id;
+        var label = textOf(problem).match(/(?:^|\s)(R\d+-\d+)(?:\s|$)/);
+        if (label) return 'label:' + label[1];
+        // No stable PTA identifier available: deduplicate this live problem node.
+        if (!localAnswerProgress.objectIds.has(problem)) localAnswerProgress.objectIds.set(problem, ++localAnswerProgress.nextId);
+        return 'node:' + localAnswerProgress.objectIds.get(problem);
+    }
+
+    function markQuestionWritten(problem, inputs, wasAnswered, token) {
+        var progress = questionProgress();
+        if (!progress || !/\/exam\/problems\/type\/[1-5](?:[/?#]|$)/.test(localAnswerProgress.page)) return false;
+        if (token && (token.page !== localAnswerProgress.page || token.generation !== localAnswerProgress.generation)) return false;
+        if (wasAnswered || !problem) return false;
+        if (document.documentElement && document.documentElement.contains && !document.documentElement.contains(problem)) return false;
+        // A partially filled multi-blank question is not a completed question.
+        inputs = Array.prototype.slice.call(inputs || []);
+        if (!inputs.length) return false;
+        var choice = inputs.some(function (input) { return /^(radio|checkbox)$/i.test(input.type || ''); });
+        var complete = choice ? inputs.some(function (input) { return input.checked; }) : inputs.every(function (input) { return String(input.value || '').trim().length > 0; });
+        if (!complete) return false;
+        var key = localQuestionKey(problem);
+        if (!key || localAnswerProgress.written.has(key)) return false;
+        localAnswerProgress.written.add(key);
+        localAnswerProgress.current = Math.min(progress.total, progress.current + 1);
+        return true;
+    }
+
+    function reconcileLocalProgress() { return questionProgress(); }
+
+    function savedQuestionProgress() {
         var typeMatch = location.pathname.match(/\/exam\/problems\/type\/(\d+)/);
         var currentMatch = location.href.match(/[?&]problemSetProblemId=([^&#]+)/);
         var currentId = currentMatch ? decodeURIComponent(currentMatch[1]) : '';
@@ -995,90 +1149,272 @@
         return null;
     }
 
-    async function solveChoicePage(type) {
-        var multiple = type === 'multi_choice';
-        var groups = collectGroups(function (input) {
-            var label = input.closest('label');
-            return !label || !/^(T|F|正确|错误)\b/i.test(textOf(label));
+    function concurrentJob(group, type, index, progressToken) {
+        var choice = /^(choice|multi_choice|judge)$/.test(type);
+        if (choice && isSkipAnswered() && selected(group)) return null;
+        var inputs = group.inputs.filter(function (input) { return !input.disabled && !input.readOnly && (choice || !input.value.trim()); });
+        if (!inputs.length || choice && inputs.length !== group.inputs.length) return null;
+        var description = questionText(group.problem);
+        var options = choice ? extractOptions(group.problem) : null;
+        if (choice && (!options || !options.length)) return null;
+        var wasAnswered = choice ? selected(group) : group.inputs.every(function (input) { return input.value.trim().length > 0; });
+        var original = inputs.map(function (input) { return choice ? input.checked : input.value; });
+        var allOriginal = group.inputs.map(function (input) { return choice ? input.checked : input.value; });
+        var code = type === 'program_fill' ? getEditorDoc(group.editor) : '';
+        var data = { description: description, options: options, images: problemImages(group.problem), language: resolveLanguage(code || description, state.language) };
+        if (!choice) {
+            data.blankCount = inputs.length;
+            var positions = inputs.map(function (input) { return group.inputs.indexOf(input) + 1; });
+            data.description += '\n【填空定位】本题共 ' + group.inputs.length + ' 空，仅回答第 ' + positions.join('、') + ' 空，按上述顺序用 | 分隔，不要输出其他空。';
+            var existing = group.inputs.map(function (input, i) { return input.value.trim() ? '第 ' + (i + 1) + ' 空：' + input.value : ''; }).filter(Boolean);
+            if (existing.length) data.description += '\n【已填写，仅作上下文】\n' + existing.join('\n');
+        }
+        if (type === 'program_fill') { var blankIndex = 0; data.code = code.replace(/______+/g, function () { return '【空' + (++blankIndex) + '】'; }); }
+        var optionSignature = options && options.map(function (option) { return option.label + ':' + option.text; }).join('\n');
+        function valid() {
+            if (!document.documentElement.contains(group.problem) || questionText(group.problem) !== description) return false;
+            if (!group.inputs.every(function (input, i) { return (choice ? input.checked : input.value) === allOriginal[i]; })) return false;
+            if (!inputs.every(function (input, i) { return document.documentElement.contains(input) && group.problem.contains(input) && !input.disabled && !input.readOnly && (choice ? input.checked : input.value) === original[i]; })) return false;
+            if (type === 'program_fill' && getEditorDoc(group.editor) !== code) return false;
+            if (choice) {
+                var current = extractOptions(group.problem);
+                if (!current || current.map(function (option) { return option.label + ':' + option.text; }).join('\n') !== optionSignature) return false;
+                if (!current.every(function (option, i) { return options[i] && option.input === options[i].input; })) return false;
+            }
+            return true;
+        }
+        return {
+            label: '第 ' + (index + 1) + ' 题', valid: valid,
+            problem: group.problem, inputs: inputs, allInputs: group.inputs, wasAnswered: wasAnswered, progressToken: progressToken,
+            request: function () { return solveOne(type, data); },
+            apply: function (answer) {
+                if (choice) return writeChoice(group.problem, answer, type === 'multi_choice') ? 1 : 0;
+                var values = normalizeAnswer(answer).split('|').map(function (value) { return value.trim(); });
+                // Refuse incomplete multi-blank answers instead of copying one answer to every blank.
+                if (values.length !== inputs.length || values.some(function (value) { return !value; })) return 0;
+                var count = 0;
+                inputs.forEach(function (input, i) {
+                    if (document.documentElement.contains(input) && input.value === original[i] && writeInput(input, values[i])) count++;
+                });
+                return count === inputs.length ? 1 : 0;
+            }
+        };
+    }
+
+    var pendingPageWrites = { url: '', items: [] };
+    function pagePendingWrites() {
+        if (pendingPageWrites.url !== location.href) pendingPageWrites = { url: location.href, items: [] };
+        return pendingPageWrites.items;
+    }
+    function rememberPageWrite(job) {
+        var items = pagePendingWrites(), inputs = job.allInputs || job.inputs;
+        var entry = { problem: job.problem, inputs: inputs.slice(), values: inputs.map(function (input) { return [input.value, input.checked]; }) };
+        var index = items.findIndex(function (item) { return item.problem === job.problem || job.problem.id && item.problem.id === job.problem.id; });
+        if (index < 0) items.push(entry); else items[index] = entry;
+    }
+    function pendingPageWritesValid() {
+        return pagePendingWrites().every(function (item) {
+            return document.documentElement.contains(item.problem) && item.inputs.every(function (input, i) {
+                return document.documentElement.contains(input) && item.problem.contains(input) && input.value === item.values[i][0] && input.checked === item.values[i][1];
+            });
         });
-        if (!groups.length) return 0;
-        var done = 0;
-        for (var i = 0; i < groups.length && state.running; i++) {
-            var group = groups[i];
-            if (isSkipAnswered() && selected(group)) continue;
-            group.problem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setQuestionProgress(multiple ? '多选题' : '单选题', i + 1, groups.length);
-            await sleep(250);
-            var options = extractOptions(group.problem);
-            var answer = await solveOne(type, { description: questionText(group.problem), options: options, images: problemImages(group.problem), language: state.language });
-            if (writeChoice(group.problem, answer, multiple)) { done++; log('第 ' + (i + 1) + ' 题已写入', 'success'); }
-            else log('第 ' + (i + 1) + ' 题未找到对应选项', 'warning');
-            // Single-question mode applies within a page as well as between pages.
-            if (!isContinuous()) break;
-        }
-        return done;
+    }
+    function pageHasPendingSave(problem) {
+        if (pagePendingWrites().length) return true;
+        var target = questionSaveControl(problem);
+        return !!(target.button && /\d+\s*题答案待保存/.test(textOf(target.button.parentElement)));
     }
 
-    async function solveJudgePage() {
-        var groups = collectGroups(function (input) {
-            var label = input.closest('label');
-            return !label || /^(T|F|正确|错误)\b/i.test(textOf(label));
+    var questionCommitQueue = Promise.resolve();
+
+    function runConcurrentJobs(jobs, current) {
+        var next = 0, active = 0, finished = 0, written = 0, failed = 0, halted = false, applied = [];
+        var single = !isContinuous();
+        // A worker slot is freed on every outcome, including a rejected request.
+        return new Promise(function (resolve) {
+            function pump() {
+                var canStart = !halted && current() && (!single && isContinuous() || next === 0);
+                var limit = state.concurrentEnabled ? normalizeConcurrency(state.concurrency) : 1;
+                if (single || !isContinuous()) limit = 1;
+                while (canStart && next < jobs.length && active < limit) {
+                    var job = jobs[next++];
+                    if (!job.valid()) { failed++; finished++; continue; }
+                    active++;
+                    (function (item) {
+                        Promise.resolve().then(function () {
+                            if (!current()) return null;
+                            if (!item.valid()) { failed++; return null; }
+                            return item.request();
+                        }).then(function (answer) {
+                            if (!current() || answer === null) return;
+                            var commit = questionCommitQueue.then(async function () {
+                                if (!current() || halted) return;
+                                if (!canWriteQuestions()) { failed++; halted = true; log('上次保存状态未确认，请刷新页面后再试', 'warning'); return; }
+                                if (!item.valid()) { failed++; log(item.label + ' 页面或答案已变化，已丢弃返回结果', 'warning'); return; }
+                                if (!item.apply(answer)) { failed++; halted = true; log(item.label + ' 返回格式不匹配，未完整写入，已停止后续写回', 'warning'); return; }
+                                rememberPageWrite(item);
+                                markQuestionWritten(item.problem, item.allInputs || item.inputs, item.wasAnswered, item.progressToken);
+                                written++; applied.push(item);
+                                log(item.label + ' 已写入，等待本页统一保存', 'success');
+                            });
+                            questionCommitQueue = commit.catch(function () { halted = true; });
+                            return commit;
+                        }).catch(function () {
+                            // Never copy provider response bodies or question contents into diagnostics.
+                            if (current()) { failed++; log(item.label + ' 请求失败，请检查连接或供应商限流后重试', 'warning'); }
+                        }).finally(function () {
+                            active--; finished++;
+                            if (current()) setQuestionProgress('本页处理 ' + finished + '/' + jobs.length + '，失败 ' + failed, written, jobs.length);
+                            pump();
+                        });
+                    })(job);
+                    canStart = !halted && current() && !single && isContinuous();
+                }
+                if (!active && (next >= jobs.length || halted || !current() || (single || !isContinuous()) && next > 0)) resolve({ written: written, failed: failed, applied: applied });
+            }
+            pump();
         });
-        if (!groups.length) return 0;
-        var done = 0;
-        for (var i = 0; i < groups.length && state.running; i++) {
-            var group = groups[i];
-            if (isSkipAnswered() && selected(group)) continue;
-            group.problem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setQuestionProgress('判断题', i + 1, groups.length);
-            await sleep(250);
-            var answer = await solveOne('judge', { description: questionText(group.problem), options: extractOptions(group.problem), images: problemImages(group.problem), language: state.language });
-            if (writeChoice(group.problem, answer, false)) { done++; log('第 ' + (i + 1) + ' 题已写入', 'success'); }
-            else log('第 ' + (i + 1) + ' 题未找到判断选项', 'warning');
-            // Single-question mode applies within a page as well as between pages.
-            if (!isContinuous()) break;
-        }
-        return done;
     }
 
-    async function solveFillPage() {
-        var groups = groupFillInputs().filter(function (group) { return group.inputs.some(function (input) { return !input.value.trim(); }); });
-        if (!groups.length) return 0;
-        var done = 0;
-        for (var i = 0; i < groups.length && state.running; i++) {
-            var group = groups[i], blanks = group.inputs.filter(function (input) { return !input.value.trim(); });
-            if (!blanks.length) continue;
-            group.problem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setQuestionProgress('填空题', i + 1, groups.length);
-            var answer = await solveOne('fill', { description: questionText(group.problem), blankCount: blanks.length, images: problemImages(group.problem), language: state.language });
-            var values = normalizeAnswer(answer).split('|').map(function (value) { return value.trim(); });
-            blanks.forEach(function (input, index) { if (writeInput(input, values[index] || values[0] || '')) done++; });
-            log('填空组 ' + (i + 1) + ' 已写入', 'success');
-            // Single-question mode applies within a page as well as between pages.
-            if (!isContinuous()) break;
+    async function solveSmallQuestionPage(type) {
+        if (!canWriteQuestions()) { state.pageErrors = true; log('上次保存状态未确认，请刷新页面后再试', 'warning'); return 0; }
+        var runId = state.runId, pageURL = location.href;
+        var current = function () { return state.running && state.runId === runId && location.href === pageURL; };
+        var progressToken = captureInitialProgress();
+        var groups;
+        if (type === 'fill') groups = groupFillInputs();
+        else if (type === 'program_fill') groups = groupProgramFills();
+        else groups = collectGroups(function (input) {
+            var label = input.closest('label');
+            var judge = label && /^(T|F|正确|错误)\b/i.test(textOf(label));
+            return !label || (type === 'judge' ? judge : !judge);
+        });
+        var jobs = groups.map(function (group, index) { return concurrentJob(group, type, index, progressToken); }).filter(Boolean);
+        if (!jobs.length) {
+            if (groups.length && pageHasPendingSave(groups[0].problem)) { state.pageErrors = true; log('页面仍有未确认的保存状态，请手动保存并刷新后再继续', 'warning'); }
+            return 0;
         }
-        return done;
+        log('同页 ' + jobs.length + ' 题，最多 ' + (state.concurrentEnabled && isContinuous() ? normalizeConcurrency(state.concurrency) : 1) + ' 个并发请求', 'info');
+        var result = await runConcurrentJobs(jobs, current);
+        if (!current()) return 0;
+        if (result.failed) { state.pageErrors = true; log('存在未完成题目，本页未自动保存，请检查后手动保存或重试', 'warning'); return result.written; }
+        if (result.written) {
+            // One Save after the page's targeted questions settle, never one per reply.
+            var save = questionCommitQueue.then(async function () {
+                if (!current()) return { status: 'cancelled' };
+                if (!pendingPageWritesValid()) return { status: 'changed' };
+                var pending = pagePendingWrites();
+                var first = pending[0].problem;
+                var root = first.closest && first.closest('main') || first;
+                var controls = [];
+                pending.forEach(function (job) { controls = controls.concat(job.inputs); });
+                if (!controls.every(function (input) { return root.contains(input); })) return { status: 'ambiguous' };
+                return saveQuestion(root, controls, current);
+            });
+            questionCommitQueue = save.catch(function () {});
+            var saved = await save;
+            if (!current()) return 0;
+            if (saved.status !== 'saved') { state.pageErrors = true; log('本页已填写但保存未确认（' + saved.status + '），请检查页面', 'warning'); }
+            else { pendingPageWrites.items = []; reconcileLocalProgress(); setQuestionProgress('本页已保存', result.written, jobs.length); log('本页目标题目已填写并统一保存', 'success'); }
+        }
+        return result.written;
     }
 
-    async function solveProgramFillPage() {
-        var groups = groupProgramFills().filter(function (group) { return group.inputs.some(function (input) { return !input.value.trim(); }); });
-        if (!groups.length) return 0;
-        var done = 0;
-        for (var i = 0; i < groups.length && state.running; i++) {
-            var group = groups[i], code = getEditorDoc(group.editor), blanks = group.inputs.filter(function (input) { return !input.value.trim(); });
-            var marked = code.replace(/______+/g, function () { return '【空】'; });
-            var answer = await solveOne('program_fill', { description: questionText(group.problem), code: marked, blankCount: blanks.length, images: problemImages(group.problem), language: resolveLanguage(code, state.language) });
-            var values = normalizeAnswer(answer).split('|').map(function (value) { return value.trim(); });
-            blanks.forEach(function (input, index) { if (writeInput(input, values[index] || values[0] || '')) done++; });
-            setQuestionProgress('程序填空', i + 1, groups.length);
-            log('程序填空组 ' + (i + 1) + ' 已写入', 'success');
-            // Single-question mode applies within a page as well as between pages.
-            if (!isContinuous()) break;
+    async function solveChoicePage(type) { return solveSmallQuestionPage(type); }
+    async function solveJudgePage() { return solveSmallQuestionPage('judge'); }
+    async function solveFillPage() { return solveSmallQuestionPage('fill'); }
+    async function solveProgramFillPage() { return solveSmallQuestionPage('program_fill'); }
+
+    // Small-question pages use one sticky page-level Save button. Keep save clicks
+    // serial; callers wait for all target questions and save the page once.
+    var questionSaveQueue = Promise.resolve();
+    // A timed-out/disappearing save may still be running on the server. Never
+    // allow a newer run to overwrite answers until a full page reload resets this.
+    var questionSaveUncertain = false;
+    function canWriteQuestions() { return !questionSaveUncertain; }
+
+    function questionSaveControl(problem) {
+        function eligible(button) {
+            return textOf(button) === '保存' && button.getClientRects().length &&
+                !(button.closest && button.closest('#pta-root, [role="dialog"], .pc-modal-container'));
         }
-        return done;
+        var local = queryAll('button', problem).filter(eligible);
+        if (local.length > 1) return { status: 'ambiguous' };
+        if (local.length === 1) return { button: local[0] };
+        var main = problem.closest && problem.closest('main');
+        if (!main) return { status: 'missing' };
+        // This is the exact structural relationship in the diagnostic snapshots.
+        // Do not use any unrelated “Save” button elsewhere in the document.
+        var global = queryAll('button', main).filter(function (button) {
+            return eligible(button) && button.closest('.sticky.bottom-0');
+        });
+        if (global.length !== 1) return { status: global.length ? 'ambiguous' : 'missing' };
+        return { button: global[0] };
+    }
+
+    function saveQuestion(problem, inputs, current) {
+        var pageURL = location.href, runId = state.runId;
+        var controls = (inputs || []).slice();
+        var initial = controls.map(function (input) { return [input.value, input.checked]; });
+        var valid = function () {
+            return state.running && state.runId === runId && location.href === pageURL &&
+                (!current || current()) && document.documentElement.contains(problem) &&
+                controls.every(function (input, index) {
+                    return document.documentElement.contains(input) && problem.contains(input) &&
+                        input.value === initial[index][0] && input.checked === initial[index][1];
+                });
+        };
+        var clicked = false;
+        var save = async function () {
+            if (!canWriteQuestions()) return { status: 'unverified', clicked: false };
+            var sawPending = false, cancelled = false;
+            var deadline = Date.now() + 8000;
+            // Let React consume the input/change events for all blanks on this page.
+            await sleep(100);
+            while (Date.now() < deadline) {
+                if (!valid()) cancelled = true;
+                if (cancelled && !clicked) return { status: 'cancelled', clicked: false };
+                // After clicking, cancellation only drains the outstanding save.
+                // A different route or detached page cannot prove its completion.
+                var observable = location.href === pageURL && document.documentElement.contains(problem);
+                var target = observable ? questionSaveControl(problem) : {};
+                if (!target.button) {
+                    if (!clicked) return { status: target.status || 'cancelled', clicked: false };
+                    await sleep(100);
+                    continue;
+                }
+                var button = target.button;
+                var status = textOf(button.parentElement);
+                var pending = /\d+\s*题答案待保存/.test(status);
+                if (pending) sawPending = true;
+                if (/保存失败|保存出错|保存错误|网络错误|请求失败/.test(status)) {
+                    if (clicked) questionSaveUncertain = true;
+                    return { status: cancelled ? 'cancelled' : 'failed', clicked: clicked };
+                }
+                var busy = button.disabled || button.getAttribute('aria-disabled') === 'true' || button.getAttribute('aria-busy') === 'true';
+                if (!clicked && !busy) {
+                    // Mark first: an exception can occur after the event was dispatched.
+                    clicked = true;
+                    button.click();
+                } else if (clicked && !busy && sawPending && !pending) {
+                    return { status: cancelled ? 'cancelled' : 'saved', clicked: true };
+                }
+                await sleep(100);
+            }
+            if (clicked) questionSaveUncertain = true;
+            return { status: cancelled ? 'cancelled' : (clicked ? 'unverified' : 'failed'), clicked: clicked };
+        };
+        var result = questionSaveQueue.then(save, save).catch(function () {
+            if (clicked) questionSaveUncertain = true;
+            return { status: 'failed', clicked: clicked };
+        });
+        questionSaveQueue = result;
+        return result;
     }
 
     async function submitCode(type) {
+        var runId = state.runId, pageURL = location.href;
+        var current = function () { return state.running && state.runId === runId && location.href === pageURL; };
         var problem = queryAll('.rendered-markdown')[0] || document.querySelector('section');
         if (!problem) return { processed: 0, fullScore: false };
         setQuestionProgress('读取题目', 1, 1);
@@ -1089,7 +1425,7 @@
         var lastFeedback = '';
         var editor = null;
 
-        while (attempts < 2 && state.running) {
+        while (attempts < 2 && current()) {
             setQuestionProgress(attempts ? '第 2 次生成答案' : '生成答案', 1, 1);
             if (!editor || !document.documentElement.contains(editor)) editor = editableEditor(attempts === 0 && isSkipAnswered());
             if (!editor) {
@@ -1107,6 +1443,7 @@
                 input: question.input, output: question.output, sampleInput: question.sampleInput, sampleOutput: question.sampleOutput,
                 images: question.images || problemImages(problem), language: resolveLanguage([question.interfaceCode, question.frameworkCode, question.supportCode, question.referenceCode, code].filter(Boolean).join('\n'), state.language)
             });
+            if (!current()) return { processed: 0, fullScore: false };
             if (!writeEditor(editor, normalizeAnswer(answer, true))) { log('代码已复制，请在编辑器中手动粘贴', 'warning'); return { processed: 0, fullScore: false }; }
             setQuestionProgress(attempts ? '第 2 次准备提交' : '准备提交', 1, 1);
             log(attempts ? '第 2 次代码已写入编辑器' : '代码已写入编辑器', 'success');
@@ -1114,11 +1451,13 @@
             var submit = await waitForSubmitButton(6000);
             if (!submit) { log('未找到可点击的“提交本题作答”按钮', 'warning'); return { processed: 1, fullScore: false }; }
             await sleep(400);
+            if (!current()) return { processed: 1, fullScore: false };
             submit.click();
             log(attempts ? '已提交第 2 次答案，等待评分' : '已点击提交，等待程序评分', 'info');
             setQuestionProgress('等待评分', 1, 1);
             setStatus('正在评分', '等待 PTA 程序评测…', 'live');
             var result = await waitForSubmissionScore(45000, previousResult);
+            if (!current()) return { processed: 1, fullScore: false };
             if (!result) { log('等待评分超时，未自动重复提交', 'warning'); return { processed: 1, fullScore: false }; }
 
             var fullScore = result.total > 0 && result.score >= result.total;
@@ -1142,53 +1481,62 @@
     }
 
     async function autoSolve() {
-        var type = detectType();
+        var runId = state.runId;
+        var type = detectType(), visitedTypes = {};
+        var initialRoute = typeRoute(location.href);
+        if (initialRoute) visitedTypes[initialRoute.id] = true;
         setQuestionProgress('准备处理', 1, 1);
         log('识别为' + (type === 'unknown' ? '未知题型' : ' ' + type) + '，语言 ' + languageLabel(state.language) + '，使用 ' + PROVIDERS[state.provider].name, 'info');
         if (type === 'unknown') { log('当前页面未识别到题型，请进入具体题目页面', 'warning'); return; }
         var total = 0;
         do {
-            if (!state.running) break;
+            if (!state.running || state.runId !== runId) break;
+            var pageURL = location.href;
+            state.pageErrors = false;
             if (type === 'judge') total += await solveJudgePage();
             else if (type === 'choice' || type === 'multi_choice') total += await solveChoicePage(type);
             else if (type === 'fill') total += await solveFillPage();
             else if (type === 'program_fill') total += await solveProgramFillPage();
             else if (type === 'function' || type === 'programming') {
                 var codeResult = await submitCode(type);
+                if (!state.running || state.runId !== runId || location.href !== pageURL) break;
                 total += codeResult.processed;
-                if ((!codeResult.fullScore && !codeResult.skipped) || !state.running || !isContinuous() || lastPage() || !goNext()) break;
-                log(codeResult.skipped ? '跳过已有答案，进入下一题' : '本题满分，进入下一题', 'success');
-                await sleep(1200);
-                setQuestionProgress('读取下一题', 1, 1);
+                if (!codeResult.fullScore && !codeResult.skipped) { state.pageErrors = true; break; }
+            }
+            if (!state.running || state.runId !== runId || location.href !== pageURL || state.pageErrors || !isContinuous()) break;
+            // Finish the current type before moving through the overview's later types.
+            if (!lastPage() && goNext()) {
+                await sleep(type === 'function' || type === 'programming' ? 1200 : 900);
                 continue;
             }
-            if (!isContinuous() || lastPage() || !goNext()) break;
-            await sleep(900);
-        } while (state.running);
-        log('本次完成，共处理 ' + total + ' 题/空', 'success');
+            var progress = questionProgress();
+            if (progress && progress.current < progress.total) { state.pageErrors = true; log('当前题型仍有未完成题目，未切换题型', 'warning'); break; }
+            if (!await goNextType(visitedTypes, runId)) break;
+            if (!state.running || state.runId !== runId || !isContinuous()) break;
+            type = detectType();
+            if (type === 'unknown') { state.pageErrors = true; break; }
+        } while (state.running && state.runId === runId);
+        if (!state.running || state.runId !== runId) return;
+        log('本次结束，共处理 ' + total + ' 题', state.pageErrors ? 'warning' : 'success');
     }
 
     var CSS = `
     #pta-root{--pta-bg:#fff;--pta-panel:#f8f9fc;--pta-text:#17181c;--pta-muted:#737782;--pta-line:#e7e9ee;--pta-accent:#635bff;--pta-accent-soft:#eeedff;--pta-success:#219653;--pta-warn:#b7791f;position:fixed;right:22px;bottom:22px;z-index:2147483000;font:13px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--pta-text)}
     #pta-root *{box-sizing:border-box}#pta-shell{position:relative;z-index:2;width:390px;height:554px;max-height:calc(100vh - 44px);border:1px solid rgba(20,24,40,.12);border-radius:18px;background:var(--pta-bg);box-shadow:0 18px 55px rgba(22,24,40,.18),0 3px 12px rgba(22,24,40,.08);overflow:hidden;transition:width .72s cubic-bezier(.16,1,.3,1),height .72s cubic-bezier(.16,1,.3,1),border-radius .72s cubic-bezier(.16,1,.3,1)}
     #pta-shell.collapsed{width:58px;height:58px;border-radius:19px;cursor:pointer}
-    .pta-aura{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:19px;pointer-events:none;z-index:1;opacity:0;transition:opacity .2s ease;display:flex;align-items:center;justify-content:center}
-    #pta-shell.collapsed.running + .pta-aura,#pta-root.running #pta-shell.collapsed + .pta-aura{opacity:1;transition:opacity .3s ease .72s}
+    .pta-aura{position:absolute;right:0;bottom:0;width:58px;height:58px;border-radius:19px;pointer-events:none;z-index:1;opacity:0;visibility:hidden;transition:none;display:flex;align-items:center;justify-content:center}
+    #pta-shell.collapsed.running + .pta-aura,#pta-root.running #pta-shell.collapsed + .pta-aura{opacity:1;visibility:visible;transition:opacity .3s ease .72s,visibility 0s linear .72s}
     .pta-aura-ambient{position:absolute;left:50%;top:50%;margin-left:-42px;margin-top:-42px;width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at center,rgba(245,180,0,.3) 0%,rgba(99,91,255,.18) 45%,transparent 70%);filter:blur(16px);animation:pta-ambient-breathe 3.6s ease-in-out infinite alternate}
     .pta-aura-disc{position:absolute;left:50%;top:50%;margin-left:-46px;margin-top:-46px;width:92px;height:92px;border-radius:50%;background:conic-gradient(from 0deg,rgba(245,175,0,.82) 0deg,rgba(235,95,30,.7) 60deg,rgba(99,91,255,.82) 135deg,rgba(14,165,233,.75) 220deg,rgba(16,185,129,.68) 285deg,rgba(245,175,0,.82) 360deg);filter:blur(15px);opacity:.78;animation:pta-orb-spin 6.5s linear infinite,pta-orb-morph 9s ease-in-out infinite alternate;will-change:transform,filter}
+    /* Keep PAS glyphs stationary: text clipping on transformed children can leave displaced glyphs. */
+    #pta-shell.collapsed{background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none}
     html.pta-theme-dark #pta-shell.collapsed{background:#18181a;backdrop-filter:none;-webkit-backdrop-filter:none}
     html.pta-theme-dark .pta-aura-ambient{background:radial-gradient(circle at center,rgba(255,200,50,.32) 0%,rgba(138,120,255,.2) 45%,transparent 70%);filter:blur(16px)}
     html.pta-theme-dark .pta-aura-disc{background:conic-gradient(from 0deg,rgba(255,204,0,.88) 0deg,rgba(255,136,0,.75) 55deg,rgba(155,89,255,.82) 130deg,rgba(56,189,248,.78) 215deg,rgba(52,211,153,.72) 280deg,rgba(255,204,0,.88) 360deg);filter:blur(14px);opacity:.85}
-    #pta-shell.collapsed.running .pta-brand-title{background:linear-gradient(90deg,rgba(23,24,28,.45) 0%,rgba(23,24,28,.45) 20%,#635bff 45%,#17181c 50%,#635bff 55%,rgba(23,24,28,.45) 80%,rgba(23,24,28,.45) 100%);background-size:260% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:pta-pas-shimmer 2.2s linear infinite}
-    html.pta-theme-dark #pta-shell.collapsed.running .pta-brand-title{background:linear-gradient(90deg,rgba(245,245,245,.45) 0%,rgba(245,245,245,.45) 20%,#a5b4fc 45%,#ffffff 50%,#a5b4fc 55%,rgba(245,245,245,.45) 80%,rgba(245,245,245,.45) 100%);background-size:260% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:pta-pas-shimmer 2.2s linear infinite}
-    #pta-shell.collapsed.running .pta-pas-p{animation:pta-letter-wave 1.6s ease-in-out infinite 0s}
-    #pta-shell.collapsed.running .pta-pas-a{animation:pta-letter-wave 1.6s ease-in-out infinite .22s}
-    #pta-shell.collapsed.running .pta-pas-s{animation:pta-letter-wave 1.6s ease-in-out infinite .44s}
     @keyframes pta-orb-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     @keyframes pta-orb-morph{0%{filter:blur(13px) hue-rotate(0deg)}50%{filter:blur(16px) hue-rotate(75deg)}100%{filter:blur(13px) hue-rotate(150deg)}}
     @keyframes pta-ambient-breathe{0%{opacity:.3;transform:scale(.92)}100%{opacity:.65;transform:scale(1.08)}}
-    @keyframes pta-pas-shimmer{0%{background-position:130% 0}100%{background-position:-130% 0}}
-    @keyframes pta-letter-wave{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.5px) scale(1.07)}}#pta-shell.collapsed .pta-top{height:58px;padding:0;border-bottom:0;background:transparent}#pta-shell.collapsed .pta-expanded{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .28s ease,visibility 0s linear .28s}#pta-shell.collapsed .pta-brand{padding:0;justify-content:center;align-items:center;gap:0;width:100%;height:100%}#pta-shell.collapsed .pta-brand-copy{align-items:center;justify-content:center;width:100%;height:100%;text-align:center}#pta-shell.collapsed .pta-brand-meta{display:none;opacity:0;max-height:0}#pta-shell.collapsed .pta-top-actions{display:none}
+    #pta-shell.collapsed .pta-top{height:58px;padding:0;border-bottom:0;background:transparent}#pta-shell.collapsed .pta-expanded{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .28s ease,visibility 0s linear .28s}#pta-shell.collapsed .pta-brand{padding:0;justify-content:center;align-items:center;gap:0;width:100%;height:100%}#pta-shell.collapsed .pta-brand-copy{align-items:center;justify-content:center;width:100%;height:100%;text-align:center}#pta-shell.collapsed .pta-brand-meta{display:none;opacity:0;max-height:0}#pta-shell.collapsed .pta-top-actions{display:none}
     .pta-top{height:62px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid var(--pta-line);background:linear-gradient(135deg,#fff 0%,#f7f7ff 100%);transition:padding .72s cubic-bezier(.16,1,.3,1),height .72s cubic-bezier(.16,1,.3,1)}.pta-brand{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:100%;transition:all .72s cubic-bezier(.16,1,.3,1)}.pta-brand-copy{min-width:0;display:flex;flex-direction:column;justify-content:center;transition:all .72s cubic-bezier(.16,1,.3,1)}.pta-brand-title{font-weight:700;font-size:13px;letter-spacing:-.2px;color:var(--pta-text);display:flex;align-items:center;white-space:nowrap;line-height:1.2;transition:font-size .72s cubic-bezier(.16,1,.3,1),font-weight .72s ease,letter-spacing .72s ease,transform .25s ease}#pta-shell.collapsed .pta-brand-title{font-size:14px;font-weight:800;letter-spacing:1px;justify-content:center}#pta-shell.collapsed:hover .pta-brand-title{transform:scale(1.08)}.pta-pas-letter{display:inline-block;font-weight:inherit;font-size:inherit;transition:all .72s cubic-bezier(.16,1,.3,1)}.pta-pas-rest{display:inline-block;max-width:55px;opacity:1;overflow:hidden;white-space:nowrap;vertical-align:bottom;transition:max-width .72s cubic-bezier(.16,1,.3,1),opacity .38s ease}#pta-shell.collapsed .pta-pas-rest{max-width:0;opacity:0;margin:0;padding:0}.pta-pas-space{display:inline-block;width:3px;max-width:3px;overflow:hidden;transition:all .72s cubic-bezier(.16,1,.3,1)}#pta-shell.collapsed .pta-pas-space{width:0;max-width:0;opacity:0}.pta-brand-meta{font-size:11px;color:var(--pta-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:1;max-height:18px;transition:opacity .28s ease,max-height .72s cubic-bezier(.16,1,.3,1)}.pta-top-actions{display:flex;gap:5px}.pta-icon-btn,.pta-link-btn{border:0;background:transparent;color:var(--pta-muted);cursor:pointer;border-radius:8px;padding:7px;transition:transform .2s ease,background .2s ease,color .2s ease}.pta-icon-btn:hover,.pta-link-btn:hover{background:var(--pta-accent-soft);color:var(--pta-accent);transform:translateY(-1px)}
     .pta-expanded{width:390px;padding:13px 14px 14px;opacity:1;transition:opacity .38s ease .18s}.pta-status{display:flex;align-items:center;gap:8px;padding:10px 11px;border-radius:12px;background:var(--pta-panel);border:1px solid var(--pta-line);margin-bottom:12px}.pta-status-dot{width:8px;height:8px;border-radius:50%;background:var(--pta-muted)}.pta-status-dot.live{background:var(--pta-accent);box-shadow:0 0 0 5px var(--pta-accent-soft);animation:pta-breathe 1.8s ease-in-out infinite}.pta-status-dot.ok{background:var(--pta-success)}.pta-status-text{flex:1}.pta-status-label{font-weight:600}.pta-status-sub{font-size:11px;color:var(--pta-muted);margin-top:1px}.pta-progress{margin:12px 2px 15px}.pta-progress-head{display:flex;justify-content:space-between;color:var(--pta-muted);font-size:11px;margin-bottom:7px}.pta-progress-head strong{color:var(--pta-text);font-weight:600}.pta-progress-track{height:5px;border-radius:99px;background:#eceef3;overflow:hidden}.pta-progress-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#8178ff,#5149dc);transition:width .38s ease}.pta-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}.pta-check{display:flex;align-items:center;gap:7px;color:var(--pta-muted);font-size:12px;cursor:pointer}.pta-check input{accent-color:var(--pta-accent)}.pta-primary{width:100%;height:42px;border:0;border-radius:11px;background:var(--pta-accent);color:#fff;font:600 13px inherit;cursor:pointer;box-shadow:0 7px 16px rgba(99,91,255,.23);transition:transform .2s ease,box-shadow .2s ease,background .2s ease}.pta-primary:hover{transform:translateY(-1px);box-shadow:0 10px 19px rgba(99,91,255,.28)}.pta-primary:active{transform:scale(.98)}.pta-primary.stop{background:#d84c5b;box-shadow:0 7px 16px rgba(216,76,91,.2)}.pta-log-head{display:flex;align-items:center;margin:16px 1px 7px;color:var(--pta-muted);font-size:11px}.pta-log-head strong{color:var(--pta-text);font-weight:600;margin-right:5px}.pta-log-clear{margin-left:auto;padding:0}.pta-log{height:108px;border-top:1px solid var(--pta-line);padding-top:5px;overflow:auto;scrollbar-width:thin}.pta-log-item{display:flex;align-items:flex-start;gap:7px;padding:4px 2px;color:var(--pta-muted);font-size:11px;animation:pta-rise .25s ease both}.pta-log-item.success{color:var(--pta-success)}.pta-log-item.warning{color:var(--pta-warn)}.pta-log-dot{width:5px;height:5px;border-radius:50%;background:currentColor;margin-top:6px;flex:0 0 auto}.pta-empty{color:#a4a8b0;padding:10px 2px}.pta-drawer{position:absolute;inset:0;background:var(--pta-bg);transform:translateX(104%);transition:transform .55s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column}.pta-drawer.open{transform:translateX(0)}.pta-drawer-head{height:62px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--pta-line)}.pta-drawer-title{font-weight:700;flex:1}.pta-drawer-body{padding:14px;overflow:auto}.pta-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--pta-panel);border-radius:10px;padding:3px;margin-bottom:15px}.pta-tab{border:0;background:transparent;color:var(--pta-muted);border-radius:8px;padding:8px;cursor:pointer;font:600 12px inherit}.pta-tab.active{background:#fff;color:var(--pta-text);box-shadow:0 1px 4px rgba(22,24,40,.1)}.pta-pane{display:none}.pta-pane.active{display:block;animation:pta-rise .25s ease both}.pta-provider{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.pta-provider-card{padding:11px;border:1px solid var(--pta-line);border-radius:11px;text-align:left;background:#fff;cursor:pointer;transition:border .2s ease,background .2s ease,transform .2s ease}.pta-provider-card:hover{transform:translateY(-1px)}.pta-provider-card.active{border-color:var(--pta-accent);background:var(--pta-accent-soft)}.pta-provider-name{font-weight:700}.pta-provider-hint{display:block;color:var(--pta-muted);font-size:10px;margin-top:3px}.pta-field{margin:12px 0}.pta-field label{display:block;font-size:11px;font-weight:600;color:var(--pta-muted);margin-bottom:6px}.pta-field input,.pta-field select{width:100%;height:36px;border:1px solid var(--pta-line);border-radius:9px;padding:0 10px;outline:none;background:#fff;color:var(--pta-text);font:12px inherit}.pta-field input:focus,.pta-field select:focus{border-color:var(--pta-accent);box-shadow:0 0 0 3px var(--pta-accent-soft)}.pta-fixed{display:flex;align-items:center;justify-content:space-between;padding:10px 11px;border-radius:10px;background:var(--pta-panel);color:var(--pta-muted);font-size:11px}.pta-fixed strong{color:var(--pta-text);font-weight:600}.pta-save-hint{font-size:11px;color:var(--pta-muted);user-select:none;transition:all .2s ease}.pta-save-hint.saved{color:var(--pta-success);font-weight:600}.pta-provider-desc{font-size:11px;line-height:1.5;color:var(--pta-muted);padding:2px 2px 10px;margin-top:-6px;transition:color .2s ease}.pta-help{font-size:11px;line-height:1.7;color:var(--pta-muted);margin:12px 1px}.pta-switch-row{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--pta-line);border-radius:11px}.pta-switch{position:relative;width:38px;height:22px}.pta-switch input{opacity:0;width:0;height:0}.pta-slider{position:absolute;inset:0;border-radius:99px;background:#d9dce4;cursor:pointer;transition:.2s}.pta-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.2s}.pta-switch input:checked+.pta-slider{background:var(--pta-accent)}.pta-switch input:checked+.pta-slider:before{transform:translateX(16px)}.pta-toast{position:fixed;right:22px;bottom:92px;z-index:2147483001;padding:10px 13px;border-radius:10px;background:#1b1d23;color:#fff;box-shadow:0 8px 25px rgba(0,0,0,.18);animation:pta-toast-in .25s ease both}.pta-toast.out{animation:pta-toast-out .25s ease both}@keyframes pta-breathe{50%{opacity:.55;transform:scale(.85)}}@keyframes pta-rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes pta-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes pta-toast-out{to{opacity:0;transform:translateY(8px)}}
     @media(max-width:600px){#pta-root{right:12px;bottom:12px}#pta-shell{width:min(390px,calc(100vw - 24px));height:min(554px,calc(100vh - 24px))}#pta-shell.collapsed{width:58px;height:58px}.pta-expanded{width:min(390px,calc(100vw - 24px))}}
@@ -1272,6 +1620,12 @@
                         <div class="pta-field"><label id="pta-api-key-label">API Key</label><input id="pta-api-key" type="password" autocomplete="off" placeholder="填写后自动读取模型列表"></div>
                         <div class="pta-field"><label>可用模型</label><div class="pta-model-select" id="pta-model-select"><select id="pta-model" class="pta-model-native" tabindex="-1" aria-hidden="true" disabled><option value="">填写 API Key 后获取</option></select><button type="button" class="pta-select-trigger" id="pta-model-trigger" aria-haspopup="listbox" aria-expanded="false" disabled><span class="pta-select-value" id="pta-model-value">填写 API Key 后获取</span><span class="pta-select-chevron" aria-hidden="true"></span></button><div class="pta-select-menu" id="pta-model-menu" role="listbox"></div></div><div id="pta-model-state" class="pta-help">模型由供应商接口实时返回。</div></div>
                         <div class="pta-drawer-actions"><button id="pta-refresh-models" class="pta-secondary">刷新模型</button><label class="pta-image-option"><input id="pta-images" type="checkbox">允许发送题目图片</label></div>
+                        <div class="pta-field">
+                            <label class="pta-check"><input id="pta-concurrent-enabled" type="checkbox" aria-describedby="pta-concurrency-help">多进程模式（并发请求）</label>
+                            <div class="pta-range-head"><label for="pta-concurrency">并发数量</label><span class="pta-range-badge" id="pta-concurrency-val">3</span></div>
+                            <div class="pta-range-wrap"><input type="range" id="pta-concurrency" class="pta-range" min="1" max="10" step="1" value="3" disabled aria-describedby="pta-concurrency-help"></div>
+                            <div class="pta-help" id="pta-concurrency-help">同页多题并发请求；关闭连续答题时仅处理一题。已发出的请求可能仍计费。</div>
+                        </div>
                         <div class="pta-field">
                             <div class="pta-range-head"><label for="pta-max-tokens">Max Token</label><span class="pta-range-badge" id="pta-max-tokens-val">2048 (2K)</span></div>
                             <div class="pta-range-wrap">
@@ -1357,8 +1711,19 @@
         }
     }
 
+    function syncConcurrencyUI() {
+        state.concurrency = normalizeConcurrency(state.concurrency);
+        var toggle = document.getElementById('pta-concurrent-enabled');
+        var slider = document.getElementById('pta-concurrency');
+        var badge = document.getElementById('pta-concurrency-val');
+        if (toggle) toggle.checked = state.concurrentEnabled === true;
+        if (slider) { slider.value = String(state.concurrency); slider.disabled = state.concurrentEnabled !== true; }
+        if (badge) badge.textContent = String(state.concurrency);
+    }
+
     function syncUI() {
         applyTheme();
+        syncConcurrencyUI();
         var provider = PROVIDERS[state.provider], config = state.configs[state.provider];
         var meta = document.getElementById('pta-meta'); if (meta) meta.textContent = (config.apiKey || provider.optionalKey && localRuntime.available) ? provider.name + ' · ' + (config.model || '等待模型') : '未配置 AI';
         var key = document.getElementById('pta-api-key'); if (key) key.value = config.apiKey || '';
@@ -1511,6 +1876,18 @@
         document.getElementById('pta-language').addEventListener('change', function () { state.language = this.value || 'auto'; saveState(); syncUI(); log('编程语言已设为 ' + languageLabel(state.language), 'info'); });
         document.getElementById('pta-model').addEventListener('change', function () { state.configs[state.provider].model = this.value; state.configs[state.provider].modelError = ''; saveState(); syncUI(); flashSaveStatus('已保存'); });
         document.getElementById('pta-images').addEventListener('change', function () { state.configs[state.provider].images = this.checked; saveState(); flashSaveStatus('已保存'); });
+        var concurrentToggle = document.getElementById('pta-concurrent-enabled');
+        var concurrencySlider = document.getElementById('pta-concurrency');
+        function saveConcurrencyControls() {
+            state.concurrentEnabled = !!concurrentToggle.checked;
+            state.concurrency = normalizeConcurrency(concurrencySlider.value);
+            syncConcurrencyUI();
+            saveState();
+            flashSaveStatus('已保存');
+        }
+        [concurrentToggle, concurrencySlider].forEach(function (control) {
+            if (control) ['input', 'change'].forEach(function (eventName) { control.addEventListener(eventName, saveConcurrencyControls); });
+        });
         var maxTokensEl = document.getElementById('pta-max-tokens');
         if (maxTokensEl) {
             maxTokensEl.addEventListener('input', function () {
@@ -1586,6 +1963,10 @@
         state.language = document.getElementById('pta-language').value || 'auto';
         state.skipAnswered = document.getElementById('pta-skip').checked;
         state.continuous = document.getElementById('pta-continuous').checked;
+        var concurrentToggle = document.getElementById('pta-concurrent-enabled');
+        var concurrencySlider = document.getElementById('pta-concurrency');
+        if (concurrentToggle) state.concurrentEnabled = concurrentToggle.checked;
+        if (concurrencySlider) state.concurrency = normalizeConcurrency(concurrencySlider.value);
         saveState(); syncUI();
         if (flash !== false && typeof flashSaveStatus === 'function') flashSaveStatus('已保存');
     }
@@ -1620,11 +2001,14 @@
         saveSettings();
         if (!providerReady(state.provider)) { toast(PROVIDERS[state.provider].optionalKey ? '请先启动本地 OpenCode Free 代理' : '请先在设置中配置 API Key'); document.getElementById('pta-drawer').classList.add('open'); return; }
         if (!state.configs[state.provider].model || !state.configs[state.provider].models.length) { toast('请先获取并选择模型'); document.getElementById('pta-drawer').classList.add('open'); loadModels(state.provider, false); return; }
+        state.runId = (state.runId || 0) + 1;
+        var runId = state.runId;
+        activeSolveController = new AbortController();
         state.running = true; var shell = document.getElementById('pta-shell'); if (shell) shell.classList.add('running'); var root = document.getElementById('pta-root'); if (root) root.classList.add('running'); document.getElementById('pta-start').textContent = '停止解题'; document.getElementById('pta-start').classList.add('stop'); setStatus('正在处理', PROVIDERS[state.provider].name + ' 工作中…', 'live'); log('任务开始', 'info');
-        autoSolve().catch(function (error) { log(error.message || String(error), 'warning'); toast('任务中断'); }).finally(function () { stopSolve(true); });
+        autoSolve().catch(function (error) { if (state.runId === runId) { log(error.message || String(error), 'warning'); toast('任务中断'); } }).finally(function () { if (state.runId === runId) stopSolve(!state.pageErrors); });
     }
 
-    function stopSolve(completed) { state.running = false; var shell = document.getElementById('pta-shell'); if (shell) shell.classList.remove('running'); var root = document.getElementById('pta-root'); if (root) root.classList.remove('running'); var button = document.getElementById('pta-start'); if (button) { button.textContent = '开始解题'; button.classList.remove('stop'); } setQuestionProgress(completed ? '已完成' : '已停止', 1, 1); setStatus(completed ? '已完成' : '已停止', completed ? '评分与答题流程已结束' : '任务已暂停', completed ? 'ok' : ''); }
+    function stopSolve(completed) { state.running = false; state.runId = (state.runId || 0) + 1; if (activeSolveController) activeSolveController.abort(); activeSolveController = null; var shell = document.getElementById('pta-shell'); if (shell) shell.classList.remove('running'); var root = document.getElementById('pta-root'); if (root) root.classList.remove('running'); var button = document.getElementById('pta-start'); if (button) { button.textContent = '开始解题'; button.classList.remove('stop'); } setQuestionProgress(completed ? '已完成' : '已停止', 1, 1); setStatus(completed ? '已完成' : '已停止', completed ? '评分与答题流程已结束' : '任务已暂停', completed ? 'ok' : ''); }
 
     // Opt-in diagnostics: memory only, bounded, never transmitted automatically.
     var diagnostics = { enabled: false, records: [], bytes: 0, observer: null, timer: null, routeTimer: null, endTimer: null, lastURL: '' };
