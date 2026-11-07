@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.6
+// @version      1.8.1-beta.7
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -72,8 +72,7 @@
         },
         skipAnswered: true,
         continuous: true,
-        concurrentEnabled: false,
-        concurrency: 3,
+        concurrency: 1,
         language: 'auto',
         theme: 'light'
     };
@@ -90,12 +89,12 @@
 
     function normalizeConcurrency(value) {
         var count = Number(value);
-        if (value == null || value === '' || !Number.isFinite(count)) return 3;
+        if (value == null || value === '' || !Number.isFinite(count)) return 1;
         return Math.max(1, Math.min(10, Math.round(count)));
     }
 
     function saveState() {
-        state.concurrentEnabled = state.concurrentEnabled === true;
+        delete state.concurrentEnabled;
         state.concurrency = normalizeConcurrency(state.concurrency);
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
     }
@@ -117,8 +116,8 @@
             state.configs.opencode = Object.assign({ apiKey: '', model: '', models: [], modelMeta: {}, modelError: '', images: false, maxTokens: 2048, thinking: 2 }, state.configs.opencode || {});
             state.skipAnswered = saved.skipAnswered !== false;
             state.continuous = saved.continuous !== false;
-            state.concurrentEnabled = saved.concurrentEnabled === true;
-            state.concurrency = normalizeConcurrency(saved.concurrency);
+            // Migrate beta.6: an off (or malformed) toggle must remain sequential.
+            state.concurrency = Object.prototype.hasOwnProperty.call(saved, 'concurrentEnabled') && saved.concurrentEnabled !== true ? 1 : normalizeConcurrency(saved.concurrency);
             state.language = ['auto', 'c', 'cpp', 'python', 'java', 'pascal'].indexOf(saved.language) >= 0 ? saved.language : 'auto';
             state.theme = saved.theme === 'dark' ? 'dark' : 'light';
             return;
@@ -474,13 +473,14 @@
 
     function extractProgramming(problem) {
         var raw = questionText(problem);
-        var ends = [/输入格式[：:]/, /输出格式[：:]/, /样例输入[：:]/, /样例输出[：:]/, /Sample\s+Input[：:]/i, /Sample\s+Output[：:]/i, /提示[：:]/];
+        var ends = [/输入格式[：:]/, /输出格式[：:]/, /样例输入[：:]/, /输入样例[：:]/, /样例输出[：:]/, /输出样例[：:]/, /Sample\s+Input[：:]/i, /Sample\s+Output[：:]/i, /提示[：:]/];
         var allCode = problemCodeBlocks(problem);
         var sampleInputCodes = sectionCode(problem, /样例输入|输入样例|Sample\s+Input/i, /样例输出|输出样例|Sample\s+Output/i);
         var sampleOutputCodes = sectionCode(problem, /样例输出|输出样例|Sample\s+Output/i, /提示|样例输入|输入样例|Sample\s+Input/i);
         var sampleCodes = sampleInputCodes.concat(sampleOutputCodes);
         var frameworkCodes = allCode.filter(function (code) { return sampleCodes.indexOf(code) < 0; });
         var q = {
+            fullText: raw,
             desc: findSection(raw, [/^题目[：:]/m, /^问题[：:]/m], ends) || beforeFirstSection(raw),
             input: findSection(raw, [/输入格式[：:]/, /输入描述[：:]/, /Input\s+Format[：:]/i], ends),
             output: findSection(raw, [/输出格式[：:]/, /输出描述[：:]/, /Output\s+Format[：:]/i], ends),
@@ -593,7 +593,7 @@
     }
 
     function promptFor(type, data, thinking) {
-        var language = languageLabel(data.language || state.language || 'auto', [data.description, data.code, data.interfaceCode, data.frameworkCode, data.supportCode, data.referenceCode].filter(Boolean).join('\n'));
+        var language = languageLabel(data.language || state.language || 'auto', [data.description, data.code, data.previousCode, data.interfaceCode, data.frameworkCode, data.supportCode, data.referenceCode].filter(Boolean).join('\n'));
         var rule = {
             judge: '只输出一行 true 或 false。',
             choice: '只输出一个选项字母，例如 B。',
@@ -610,6 +610,7 @@
         if (data.supportCode) parts.push('【类型与裁判参考代码】\n' + data.supportCode);
         if (data.referenceCode) parts.push('【参考代码】\n' + data.referenceCode);
         if (data.code) parts.push('【当前代码】\n' + data.code);
+        if (data.previousCode) parts.push('【上次提交代码】\n' + data.previousCode);
         if (data.input) parts.push('【输入格式】\n' + data.input);
         if (data.output) parts.push('【输出格式】\n' + data.output);
         if (data.sampleInput) parts.push('【样例输入】\n' + data.sampleInput);
@@ -1108,10 +1109,12 @@
 
     function parseSubmissionScore(text) {
         if (!/提交结果/.test(text)) return null;
+        // Submitted source may contain words such as Running or 等待; it is not judge state.
+        var judgeText = text.split('提交代码')[0];
         // A displayed 0 is often a placeholder while the judge is still running.
-        if (/等待|排队|评测中|判题中|编译中|运行中|提交中|Pending|Queuing|Judging|Compiling|Running/i.test(text)) return null;
-        if (!/答案正确|答案错误|部分正确|编译错误|运行错误|运行超时|内存超限|输出超限|格式错误|非零返回|段错误|浮点错误|评测完成|判题完成|Accepted|Wrong Answer|Compile Error|Compilation Error|Runtime Error|Time Limit Exceeded|Memory Limit Exceeded|Output Limit Exceeded|Presentation Error/i.test(text)) return null;
-        var match = text.match(/(?:分数|得分)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+        if (/等待|排队|评测中|判题中|编译中|运行中|提交中|Pending|Queuing|Judging|Compiling|Running/i.test(judgeText)) return null;
+        if (!/答案正确|答案错误|部分正确|编译错误|运行错误|运行超时|内存超限|输出超限|格式错误|非零返回|段错误|浮点错误|评测完成|判题完成|Accepted|Wrong Answer|Compile Error|Compilation Error|Runtime Error|Time Limit Exceeded|Memory Limit Exceeded|Output Limit Exceeded|Presentation Error/i.test(judgeText)) return null;
+        var match = judgeText.match(/(?:分数|得分)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
         return match ? { score: Number(match[1]), total: Number(match[2]), feedback: text.slice(0, 8000) } : null;
     }
 
@@ -1121,7 +1124,11 @@
         var container = submissionResultContainer();
         if (!container) return false;
         var close = queryAll('button', container).find(function (button) { return /^(确认|关闭|返回)$/.test(textOf(button)) || /close|关闭/i.test(button.getAttribute('aria-label') || ''); });
-        if (close) { close.click(); return true; }
+        if (close) {
+            // A graded popup may disappear before the mutation observer's next snapshot.
+            if (typeof diagnostics !== 'undefined' && diagnostics.enabled) captureDiagnostic('before-close-submission-result');
+            close.click(); return true;
+        }
         return false;
     }
 
@@ -1140,7 +1147,7 @@
         var sawPending = false;
         while (Date.now() < deadline && state.running) {
             var snapshot = submissionSnapshot();
-            if (/等待|排队|评测中|判题中|编译中|运行中|提交中|Pending|Queuing|Judging|Compiling|Running/i.test(snapshot)) sawPending = true;
+            if (/等待|排队|评测中|判题中|编译中|运行中|提交中|Pending|Queuing|Judging|Compiling|Running/i.test(snapshot.split('提交代码')[0])) sawPending = true;
             var score = parseSubmissionScore(snapshot);
             // Do not reopen “last submission”: it can still refer to an older run.
             if (score && (sawPending || snapshot !== previousResult)) return score;
@@ -1185,6 +1192,10 @@
         }
         return {
             label: '第 ' + (index + 1) + ' 题', valid: valid,
+            reveal: function () {
+                if (!document.documentElement.contains(group.problem) || typeof group.problem.scrollIntoView !== 'function') return;
+                group.problem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            },
             problem: group.problem, inputs: inputs, allInputs: group.inputs, wasAnswered: wasAnswered, progressToken: progressToken,
             request: function () { return solveOne(type, data); },
             apply: function (answer) {
@@ -1230,20 +1241,29 @@
     function runConcurrentJobs(jobs, current) {
         var next = 0, active = 0, finished = 0, written = 0, failed = 0, halted = false, applied = [];
         var single = !isContinuous();
+        var lastRevealed = -1;
+        function reveal(item, index) {
+            if (!current() || index <= lastRevealed) return;
+            lastRevealed = index;
+            // Concurrent replies may arrive out of order. Follow progress forward
+            // only, rather than bouncing backwards on each late reply.
+            try { if (typeof item.reveal === 'function') item.reveal(); } catch (e) { /* Scrolling is cosmetic; do not discard a valid answer. */ }
+        }
         // A worker slot is freed on every outcome, including a rejected request.
         return new Promise(function (resolve) {
             function pump() {
                 var canStart = !halted && current() && (!single && isContinuous() || next === 0);
-                var limit = state.concurrentEnabled ? normalizeConcurrency(state.concurrency) : 1;
+                var limit = normalizeConcurrency(state.concurrency);
                 if (single || !isContinuous()) limit = 1;
                 while (canStart && next < jobs.length && active < limit) {
                     var job = jobs[next++];
                     if (!job.valid()) { failed++; finished++; continue; }
                     active++;
-                    (function (item) {
+                    (function (item, index, serial) {
                         Promise.resolve().then(function () {
                             if (!current()) return null;
                             if (!item.valid()) { failed++; return null; }
+                            if (serial) reveal(item, index);
                             return item.request();
                         }).then(function (answer) {
                             if (!current() || answer === null) return;
@@ -1252,6 +1272,7 @@
                                 if (!canWriteQuestions()) { failed++; halted = true; log('上次保存状态未确认，请刷新页面后再试', 'warning'); return; }
                                 if (!item.valid()) { failed++; log(item.label + ' 页面或答案已变化，已丢弃返回结果', 'warning'); return; }
                                 if (!item.apply(answer)) { failed++; halted = true; log(item.label + ' 返回格式不匹配，未完整写入，已停止后续写回', 'warning'); return; }
+                                reveal(item, index);
                                 rememberPageWrite(item);
                                 markQuestionWritten(item.problem, item.allInputs || item.inputs, item.wasAnswered, item.progressToken);
                                 written++; applied.push(item);
@@ -1267,7 +1288,7 @@
                             if (current()) setQuestionProgress('本页处理 ' + finished + '/' + jobs.length + '，失败 ' + failed, written, jobs.length);
                             pump();
                         });
-                    })(job);
+                    })(job, next - 1, limit === 1);
                     canStart = !halted && current() && !single && isContinuous();
                 }
                 if (!active && (next >= jobs.length || halted || !current() || (single || !isContinuous()) && next > 0)) resolve({ written: written, failed: failed, applied: applied });
@@ -1294,7 +1315,7 @@
             if (groups.length && pageHasPendingSave(groups[0].problem)) { state.pageErrors = true; log('页面仍有未确认的保存状态，请手动保存并刷新后再继续', 'warning'); }
             return 0;
         }
-        log('同页 ' + jobs.length + ' 题，最多 ' + (state.concurrentEnabled && isContinuous() ? normalizeConcurrency(state.concurrency) : 1) + ' 个并发请求', 'info');
+        log('同页 ' + jobs.length + ' 题，最多 ' + (isContinuous() ? normalizeConcurrency(state.concurrency) : 1) + ' 个并发请求', 'info');
         var result = await runConcurrentJobs(jobs, current);
         if (!current()) return 0;
         if (result.failed) { state.pageErrors = true; log('存在未完成题目，本页未自动保存，请检查后手动保存或重试', 'warning'); return result.written; }
@@ -1423,6 +1444,7 @@
         var question = type === 'programming' ? extractProgramming(problem) : extractFunction(problem);
         var attempts = 0;
         var lastFeedback = '';
+        var lastSubmittedCode = '';
         var editor = null;
 
         while (attempts < 2 && current()) {
@@ -1435,7 +1457,7 @@
             }
             var code = getEditorDoc(editor);
             var answer = await solveOne(type, {
-                description: (question.desc || questionText(problem)) + (attempts ? '\n\n【重试要求】上一次提交未获得满分，请重新检查边界条件、输入输出和代码逻辑，不要机械重复上一次答案。\n【本次实际评测反馈】\n' + lastFeedback + '\n请根据可见的得分、错误类型和检查点信息修正。未显示的隐藏测试输入不可推断为已知事实。' : ''), code: code,
+                description: (question.fullText || question.desc || questionText(problem)) + (attempts ? '\n\n【重试要求】上一次提交未获得满分，请重新检查边界条件、输入输出和代码逻辑，不要机械重复上一次答案。\n【本次实际评测反馈】\n' + lastFeedback + '\n请根据可见的得分、错误类型和检查点信息修正。未显示的隐藏测试输入不可推断为已知事实。' : ''), code: attempts ? '' : code, previousCode: attempts ? lastSubmittedCode : '',
                 interfaceCode: question.interfaceCode,
                 supportCode: question.supportCode,
                 frameworkCode: question.frameworkCode,
@@ -1452,6 +1474,7 @@
             if (!submit) { log('未找到可点击的“提交本题作答”按钮', 'warning'); return { processed: 1, fullScore: false }; }
             await sleep(400);
             if (!current()) return { processed: 1, fullScore: false };
+            lastSubmittedCode = getEditorDoc(editor) || normalizeAnswer(answer, true);
             submit.click();
             log(attempts ? '已提交第 2 次答案，等待评分' : '已点击提交，等待程序评分', 'info');
             setQuestionProgress('等待评分', 1, 1);
@@ -1621,10 +1644,9 @@
                         <div class="pta-field"><label>可用模型</label><div class="pta-model-select" id="pta-model-select"><select id="pta-model" class="pta-model-native" tabindex="-1" aria-hidden="true" disabled><option value="">填写 API Key 后获取</option></select><button type="button" class="pta-select-trigger" id="pta-model-trigger" aria-haspopup="listbox" aria-expanded="false" disabled><span class="pta-select-value" id="pta-model-value">填写 API Key 后获取</span><span class="pta-select-chevron" aria-hidden="true"></span></button><div class="pta-select-menu" id="pta-model-menu" role="listbox"></div></div><div id="pta-model-state" class="pta-help">模型由供应商接口实时返回。</div></div>
                         <div class="pta-drawer-actions"><button id="pta-refresh-models" class="pta-secondary">刷新模型</button><label class="pta-image-option"><input id="pta-images" type="checkbox">允许发送题目图片</label></div>
                         <div class="pta-field">
-                            <label class="pta-check"><input id="pta-concurrent-enabled" type="checkbox" aria-describedby="pta-concurrency-help">多进程模式（并发请求）</label>
-                            <div class="pta-range-head"><label for="pta-concurrency">并发数量</label><span class="pta-range-badge" id="pta-concurrency-val">3</span></div>
-                            <div class="pta-range-wrap"><input type="range" id="pta-concurrency" class="pta-range" min="1" max="10" step="1" value="3" disabled aria-describedby="pta-concurrency-help"></div>
-                            <div class="pta-help" id="pta-concurrency-help">同页多题并发请求；关闭连续答题时仅处理一题。已发出的请求可能仍计费。</div>
+                            <div class="pta-range-head"><label for="pta-concurrency">并发数量</label><span class="pta-range-badge" id="pta-concurrency-val">1（串行）</span></div>
+                            <div class="pta-range-wrap"><input type="range" id="pta-concurrency" class="pta-range" min="1" max="10" step="1" value="1" aria-describedby="pta-concurrency-help"></div>
+                            <div class="pta-help" id="pta-concurrency-help">1 为串行，2–10 为同页并发请求数；关闭连续答题时仅处理一题。已发出的请求可能仍计费。</div>
                         </div>
                         <div class="pta-field">
                             <div class="pta-range-head"><label for="pta-max-tokens">Max Token</label><span class="pta-range-badge" id="pta-max-tokens-val">2048 (2K)</span></div>
@@ -1713,12 +1735,10 @@
 
     function syncConcurrencyUI() {
         state.concurrency = normalizeConcurrency(state.concurrency);
-        var toggle = document.getElementById('pta-concurrent-enabled');
         var slider = document.getElementById('pta-concurrency');
         var badge = document.getElementById('pta-concurrency-val');
-        if (toggle) toggle.checked = state.concurrentEnabled === true;
-        if (slider) { slider.value = String(state.concurrency); slider.disabled = state.concurrentEnabled !== true; }
-        if (badge) badge.textContent = String(state.concurrency);
+        if (slider) { slider.value = String(state.concurrency); slider.disabled = false; }
+        if (badge) badge.textContent = state.concurrency === 1 ? '1（串行）' : String(state.concurrency);
     }
 
     function syncUI() {
@@ -1876,16 +1896,14 @@
         document.getElementById('pta-language').addEventListener('change', function () { state.language = this.value || 'auto'; saveState(); syncUI(); log('编程语言已设为 ' + languageLabel(state.language), 'info'); });
         document.getElementById('pta-model').addEventListener('change', function () { state.configs[state.provider].model = this.value; state.configs[state.provider].modelError = ''; saveState(); syncUI(); flashSaveStatus('已保存'); });
         document.getElementById('pta-images').addEventListener('change', function () { state.configs[state.provider].images = this.checked; saveState(); flashSaveStatus('已保存'); });
-        var concurrentToggle = document.getElementById('pta-concurrent-enabled');
         var concurrencySlider = document.getElementById('pta-concurrency');
         function saveConcurrencyControls() {
-            state.concurrentEnabled = !!concurrentToggle.checked;
             state.concurrency = normalizeConcurrency(concurrencySlider.value);
             syncConcurrencyUI();
             saveState();
             flashSaveStatus('已保存');
         }
-        [concurrentToggle, concurrencySlider].forEach(function (control) {
+        [concurrencySlider].forEach(function (control) {
             if (control) ['input', 'change'].forEach(function (eventName) { control.addEventListener(eventName, saveConcurrencyControls); });
         });
         var maxTokensEl = document.getElementById('pta-max-tokens');
@@ -1963,9 +1981,7 @@
         state.language = document.getElementById('pta-language').value || 'auto';
         state.skipAnswered = document.getElementById('pta-skip').checked;
         state.continuous = document.getElementById('pta-continuous').checked;
-        var concurrentToggle = document.getElementById('pta-concurrent-enabled');
         var concurrencySlider = document.getElementById('pta-concurrency');
-        if (concurrentToggle) state.concurrentEnabled = concurrentToggle.checked;
         if (concurrencySlider) state.concurrency = normalizeConcurrency(concurrencySlider.value);
         saveState(); syncUI();
         if (flash !== false && typeof flashSaveStatus === 'function') flashSaveStatus('已保存');
