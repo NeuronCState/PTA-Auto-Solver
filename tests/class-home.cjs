@@ -11,11 +11,10 @@ function page(cards,start,end,total,next) {
  ...(next?[{className:'pageItem',textContent:'2',classList:{contains:()=>false},getAttribute:()=>null,click:next}]:[])]}:null};
 }
 function harness(pages){
- let index=0,removed=0,frame,clock=0;
- const FakeDate=class extends Date{static now(){return clock;}};
- const ctx={Date:FakeDate,URL,Set,Map,location:{origin:'https://pintia.cn',href:'https://pintia.cn/problem-sets/dashboard',pathname:'/problem-sets/dashboard'},setTimeout:fn=>{clock+=250;fn();},setInterval:()=>{},document:{getElementById:()=>null,querySelector:()=>null,createElement(tag){assert.equal(tag,'iframe'); frame={setAttribute(){},style:{},contentWindow:{location:{href:'https://pintia.cn/problem-sets/all'}},get contentDocument(){return pages[index];},remove(){removed++;}};return frame;},body:{appendChild(){}}}};
- const api=vm.runInNewContext(section+'({catalogueRoute,catalogueDeadline,catalogueCard,catalogueRows,groupCatalogueRows,cataloguePagination,catalogueNextPage,loadClassCatalogue,stopClassCatalogue,catalogueFrameDocument,catalogueState,catalogueOverview})',ctx);
- return {api,ctx,next:()=>{index++;},removed:()=>removed,frame:()=>frame};
+ const current=pages[0]||page([],0,0,0);
+ const ctx={Date,URL,Set,Map,location:{origin:'https://pintia.cn',href:'https://pintia.cn/problem-sets/dashboard',pathname:'/problem-sets/dashboard'},setInterval:()=>{},document:{getElementById:()=>null,querySelector:s=>current.querySelector(s),querySelectorAll:s=>current.querySelectorAll(s),createElement(){throw Error('Must not create frames');}}};
+ const api=vm.runInNewContext(section+'({catalogueRoute,catalogueDeadline,catalogueCard,catalogueRows,groupCatalogueRows,cataloguePagination,loadClassCatalogue,stopClassCatalogue,catalogueState,catalogueOverview})',ctx);
+ return {api,ctx};
 }
 (async()=>{
  const h=harness([]),a=h.api;
@@ -29,7 +28,7 @@ function harness(pages){
  assert.equal(metrics.score,'0');assert.equal(metrics.progress,'0 %');assert.equal(metrics.answered,0);assert.equal(metrics.total,66);
  assert.equal(a.catalogueOverview(overview(null,null,[])),null);
  metrics=a.catalogueOverview(overview('8','101%',[['11','10']]));assert.equal(metrics.progress,null);assert.equal(metrics.total,null);
- assert.match(section,/Promise.all\(\[worker\(\),worker\(\)\]\)/);assert.match(section,/slice\(0,200\)/);assert.match(section,/180000/);
+ assert.ok(!section.includes('contentWindow'));assert.ok(!section.includes('iframe'));
 
  assert.equal(a.catalogueRoute('/problem-sets/dashboard'),true);assert.equal(a.catalogueRoute('/problem-sets/12/exam'),false);
  assert.equal(a.catalogueDeadline('2026-02-30 12:00'),Infinity);assert.equal(a.catalogueDeadline('2026-11-11 24:00'),Infinity);
@@ -41,13 +40,9 @@ function harness(pages){
  const rows=a.catalogueRows(page([card('1'),card('1'),card('2',{group:'Class B'})],1,3,3));assert.equal(rows.length,2);
  const grouped=a.groupCatalogueRows([a.catalogueCard(card('1',{deadline:'unknown'})),a.catalogueCard(card('2',{deadline:'2026-12-11 10:00'})),a.catalogueCard(card('3',{deadline:'2026-11-11 10:00'}))]);
  assert.equal(grouped.groups[0].items.map(x=>x.id).join(','),'3,2,1');
- let multi=harness([]);const pages=[page([card('1'),card('2')],1,2,3,()=>multi.next()),page([card('3')],3,3,3)];multi=harness(pages);await multi.api.loadClassCatalogue();assert.equal(multi.api.catalogueState.status,'ready');assert.equal(multi.api.catalogueState.rows.length,3);assert.ok(multi.removed()>0);assert.equal(multi.frame().name,'pta-catalog-reader');assert.ok(multi.frame().style.cssText.includes('visibility:hidden'));
- const partial=harness([page([card('1')],1,1,2)]);await partial.api.loadClassCatalogue();assert.equal(partial.api.catalogueState.status,'partial');assert.equal(partial.api.catalogueState.rows.length,1);
- const empty=harness([page([],0,0,0)]);await empty.api.loadClassCatalogue();assert.equal(empty.api.catalogueState.status,'ready');assert.equal(empty.api.catalogueState.rows.length,0);
- assert.throws(()=>a.catalogueFrameDocument({contentWindow:{location:{href:'https://pintia.cn/login'}}}),/登录/);
- assert.throws(()=>a.catalogueFrameDocument({contentWindow:{location:{href:'https://evil.invalid/'}}}),/登录/);
- const noSummary=harness([{querySelector:()=>null,querySelectorAll:()=>[]}]);await noSummary.api.loadClassCatalogue();assert.equal(noSummary.api.catalogueState.status,'error');assert.match(noSummary.api.catalogueState.message,/超时/);
- multi.api.stopClassCatalogue();assert.equal(multi.api.catalogueState.rows.length,0);assert.equal(multi.api.catalogueState.status,'idle');
- assert.match(src,/section\.open=false/);assert.match(src,/window\.name === 'pta-catalog-reader'/);assert.ok(!section.includes('innerHTML'));assert.ok(!section.includes('localStorage'));assert.ok(!section.includes('GM_xmlhttpRequest'));assert.match(section,/pageNo<50/);assert.match(section,/120000/);
- console.log('PASS: class card extraction, date sorting, scoped safe links, collapsed groups, invisible same-origin paging, partial/timeout/login guards, cleanup');
+ const partial=harness([page([card('1')],1,1,2,()=>{throw Error('Must not navigate');})]);await partial.api.loadClassCatalogue();assert.equal(partial.api.catalogueState.status,'partial');assert.equal(partial.api.catalogueState.rows.length,1);assert.equal(partial.api.catalogueState.rows[0].metricsState,'unavailable');assert.match(partial.api.catalogueState.message,/共 2 个/);
+ const empty=harness([page([],0,0,0)]);await empty.api.loadClassCatalogue();assert.equal(empty.api.catalogueState.status,'blocked');assert.equal(empty.api.catalogueState.rows.length,0);assert.match(empty.api.catalogueState.message,/禁止后台页面嵌入/);
+ partial.api.stopClassCatalogue();assert.equal(partial.api.catalogueState.rows.length,0);assert.equal(partial.api.catalogueState.status,'idle');
+ assert.match(src,/section\.open=false/);assert.ok(!section.includes('innerHTML'));assert.ok(!section.includes('localStorage'));assert.ok(!section.includes('GM_xmlhttpRequest'));
+ console.log('PASS: class parsing/sorting, safe links, current-page-only partial results, no frames/navigation or fabricated metrics');
 })().catch(e=>{console.error(e);process.exitCode=1;});
