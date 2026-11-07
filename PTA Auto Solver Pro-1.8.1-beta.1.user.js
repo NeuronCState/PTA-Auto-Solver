@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.12
+// @version      1.8.1-beta.13
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -2154,12 +2154,43 @@ return module.exports; } catch (unavailable) { return null; } })();
         .pta-assist button:focus-visible, .pta-assist pre:focus-visible { outline:3px solid #818cf8; outline-offset:3px; }
 
     #pta-root{--pta-bg:#fff;--pta-panel:#f8f9fc;--pta-text:#17181c;--pta-muted:#737782;--pta-line:#e7e9ee;--pta-accent:#635bff;--pta-accent-soft:#eeedff;--pta-success:#219653;--pta-warn:#b7791f;position:fixed;right:22px;bottom:22px;z-index:2147483000;font:13px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--pta-text)}
+    /* Reflow content before suppressing incidental horizontal overflow. */
+    #pta-root .pta-drawer-head{height:auto;min-height:74px;flex:0 0 auto;padding:12px 14px 0;min-width:0}
+    #pta-root .pta-drawer-title{min-width:0;overflow-wrap:anywhere}
+    #pta-root .pta-save-hint{flex:none;white-space:normal;text-align:right}
+    #pta-root .pta-drawer-body{flex:1 1 auto;min-height:0;min-width:0;max-width:100%;overflow-y:auto;overflow-x:hidden}
+    #pta-root .pta-drawer-body>*{min-width:0;max-width:100%}
+    #pta-root .pta-provider-card,#pta-root .pta-field,#pta-root .pta-model-select,#pta-root .pta-dev-collapse,#pta-root .pta-dev-collapse-inner{min-width:0;max-width:100%;overflow-wrap:anywhere}
+    #pta-root .pta-provider-card{white-space:normal}
+    #pta-root .pta-fixed{gap:8px;flex-wrap:wrap}
+    #pta-root .pta-fixed>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+    #pta-root .pta-drawer-actions,#pta-root .pta-range-head{flex-wrap:wrap;gap:8px}
+    #pta-root .pta-image-option,#pta-root .pta-range-badge{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+    #pta-root .pta-select-trigger{height:auto;min-height:38px;padding:9px 10px;min-width:0}
+    #pta-root .pta-select-value{min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.4}
+    #pta-root .pta-select-chevron{flex:none}
+    #pta-root .pta-select-menu{max-width:100%;overflow-y:auto;overflow-x:hidden}
+    #pta-root .pta-select-option{min-width:0;white-space:normal;overflow-wrap:anywhere}
+    #pta-root .pta-log{overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere}
+    #pta-root .pta-log>*{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+    #pta-root .pta-max-tokens-scale,#pta-root .pta-thinking-scale{height:40px}
+    #pta-root .pta-max-tokens-scale .pta-scale-item,#pta-root .pta-thinking-scale .pta-scale-item{max-width:38%;white-space:normal;overflow-wrap:anywhere}
+    #pta-root .pta-max-tokens-scale .pta-scale-item:first-child,#pta-root .pta-thinking-scale .pta-scale-item:first-child{transform:none;text-align:left}
+    #pta-root .pta-max-tokens-scale .pta-scale-item:last-child,#pta-root .pta-thinking-scale .pta-scale-item:last-child{transform:translateX(-100%);text-align:right}
+    #pta-api-diagnostic-preview .pta-dev-preview{overflow-y:auto;overflow-x:hidden}
+    .pta-dev-preview textarea{white-space:pre-wrap;overflow-wrap:anywhere;overflow-y:auto;overflow-x:hidden}
+
     /* Developer controls: local styles, no changes to recording/export behavior. */
     #pta-root .pta-dev-options{margin-top:16px;border:1px solid var(--pta-line);border-radius:12px;overflow:hidden;background:var(--pta-panel)}
     #pta-root .pta-dev-options>summary{padding:12px;min-height:44px;font-size:12px;font-weight:650;color:var(--pta-text);cursor:pointer;user-select:none}
     #pta-root .pta-dev-options>summary::marker{color:var(--pta-muted)}
     #pta-root .pta-dev-options>summary:hover{background:var(--pta-accent-soft)}
     #pta-root .pta-dev-options[open]>summary{border-bottom:1px solid var(--pta-line)}
+    #pta-root .pta-dev-collapse{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .22s ease,opacity .18s ease}
+    #pta-root .pta-dev-collapse-inner{min-height:0;overflow:hidden}
+    #pta-root .pta-dev-options[data-dev-expanded="true"]>.pta-dev-collapse{grid-template-rows:1fr;opacity:1}
+    #pta-root .pta-dev-options:not([data-dev-expanded])[open]>.pta-dev-collapse{grid-template-rows:1fr;opacity:1}
+    @media(prefers-reduced-motion:reduce){#pta-root .pta-dev-collapse{transition:none}}
     #pta-root .pta-dev-card{margin:10px;padding:12px;border:1px solid var(--pta-line);border-radius:10px;background:var(--pta-bg);min-width:0}
     #pta-root .pta-dev-card .pta-dev-toggle{display:flex;align-items:center;justify-content:flex-start;gap:9px;min-height:36px;margin:0;font-size:12px;color:var(--pta-text);cursor:pointer}
     #pta-root .pta-dev-toggle input[type=checkbox]{appearance:auto;flex:0 0 auto;width:16px;height:16px;margin:0;padding:0;accent-color:var(--pta-accent);box-shadow:none;cursor:pointer}
@@ -2356,7 +2387,7 @@ return module.exports; } catch (unavailable) { return null; } })();
     }
     // Read-only same-origin API adapter. No iframe, credentials inspection,
     // POST/PUT, exam creation, visible navigation or model requests.
-    var catalogueState={rows:[],status:'idle',message:'',run:0,suspended:false,job:null,total:null};
+    var catalogueState={rows:[],status:'idle',message:'',run:0,suspended:false,job:null,total:null,source:'dom',domSignature:'',failure:''};
     var catalogueNextStart=0;
     function catalogueFailure(code) {var e=new Error(code);e.catalogueCode=code;return e;}
     function catalogueAlive(job) {
@@ -2366,7 +2397,20 @@ return module.exports; } catch (unavailable) { return null; } })();
     }
     function stopClassCatalogue() {
         if(catalogueState.job){catalogueState.job.controller.abort();clearTimeout(catalogueState.job.timer);}
-        catalogueState.job=null;catalogueState.run++;catalogueState.rows=[];catalogueState.status='idle';catalogueState.message='';catalogueState.total=null;
+        catalogueState.job=null;catalogueState.run++;catalogueState.rows=[];catalogueState.status='idle';catalogueState.message='';catalogueState.total=null;catalogueState.source='dom';catalogueState.domSignature='';catalogueState.failure='';
+    }
+    function syncCatalogueDOM() {
+        if(catalogueState.source!=='dom' || catalogueState.suspended || !catalogueRoute(location.pathname))return;
+        var rows=catalogueRows(document),page=cataloguePagination(document),signature=JSON.stringify({rows:rows,page:page});
+        if(signature!==catalogueState.domSignature){catalogueState.domSignature=signature;rows.forEach(function(row){row.metricsState='unavailable';});catalogueState.rows=rows;catalogueState.total=page?page.total:null;}
+        if(catalogueState.status!=='loading')catalogueState.message='当前页 '+rows.length+(page?'/'+page.total:'')+' 个题集。'+(catalogueState.failure?catalogueState.failure+'。':'后台数据未读取。');
+    }
+    function catalogueTransportDiagnostic(url,status,kind,length) {
+        if(typeof apiDiagnostics==='undefined' || !apiDiagnostics.enabled)return;
+        var target=apiDiagnosticTarget(url,'GET');if(!target)return;
+        // Only fixed body categories and byte counts, never response text or headers.
+        var allowed=['json','html','empty','non-json'];if(allowed.indexOf(kind)<0)return;
+        addApiDiagnostic(target,status,undefined,'catalogue fetch: '+kind+'; bytes='+length,apiDiagnostics.generation);
     }
     async function catalogueAPI(job,path) {
         catalogueAlive(job);
@@ -2378,7 +2422,7 @@ return module.exports; } catch (unavailable) { return null; } })();
         var controller=new AbortController(),abort=function(){controller.abort();};job.controller.signal.addEventListener('abort',abort,{once:true});
         var timer=setTimeout(abort,15000);
         try{
-            var response=await fetch(url.href,{method:'GET',credentials:'same-origin',mode:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal});
+            var response=await fetch(url.href,{method:'GET',credentials:'same-origin',mode:'same-origin',redirect:'error',cache:'no-store',headers:{Accept:'application/json;charset=UTF-8'},signal:controller.signal});
             catalogueAlive(job);
             if(response.status===401)throw catalogueFailure('login');
             if(response.status===403)throw catalogueFailure('permission');
@@ -2389,7 +2433,9 @@ return module.exports; } catch (unavailable) { return null; } })();
             var reader=response.body.getReader(),parts=[],length=0;
             while(true){var part=await reader.read();catalogueAlive(job);if(part.done)break;length+=part.value.byteLength;if(length>2*1024*1024){reader.cancel().catch(function(){});throw catalogueFailure('too-large');}parts.push(part.value);}
             var bytes=new Uint8Array(length),offset=0;parts.forEach(function(p){bytes.set(p,offset);offset+=p.byteLength;});
-            var data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch(_){throw catalogueFailure('invalid-json');}
+            var bodyText=new TextDecoder().decode(bytes),trimmed=bodyText.trim(),kind=!trimmed?'empty':/^(?:<!doctype\s+html|<html|<head|<body|<\?xml)/i.test(trimmed)?'html':'non-json';
+            var data;try{data=JSON.parse(bodyText);}catch(_){catalogueTransportDiagnostic(url.href,response.status,kind,length);throw catalogueFailure(kind==='html'?'html-response':kind==='empty'?'empty-response':'invalid-json');}
+            catalogueTransportDiagnostic(url.href,response.status,'json',length);
             if(!data || typeof data!=='object' || Array.isArray(data))throw catalogueFailure('invalid-data');
             return data;
         }catch(e){if(e.catalogueCode)throw e;if(job.controller.signal.aborted)throw catalogueFailure(Date.now()>=job.deadline?'deadline':'cancelled');throw catalogueFailure(controller.signal.aborted?'timeout':'network');}
@@ -2420,26 +2466,30 @@ return module.exports; } catch (unavailable) { return null; } })();
         return result;
     }
     function catalogueErrorText(code) {
-        return {login:'登录状态失效，已停止读取',permission:'没有读取权限', 'rate-limit':'平台限流，已停止读取',deadline:'达到读取时限',cancelled:'读取已取消',timeout:'读取超时',network:'网络或登录跳转阻止读取','invalid-data':'接口结构不符合已验证格式','invalid-json':'返回内容不是有效JSON','too-large':'响应超过大小限制',pagination:'目录分页变化或重复，未宣称完整'}[code]||'未能读取';
+        return {login:'登录状态失效，已停止读取',permission:'没有读取权限', 'rate-limit':'平台限流，已停止读取',deadline:'达到读取时限',cancelled:'读取已取消',timeout:'读取超时',network:'网络或登录跳转阻止读取','invalid-data':'接口结构不符合已验证格式','invalid-json':'接口返回非JSON（可开启接口诊断后重新读取）','html-response':'接口返回网页（可开启接口诊断后重新读取）','empty-response':'接口返回空内容','too-large':'响应超过大小限制',pagination:'目录分页变化或重复，未宣称完整'}[code]||'未能读取';
     }
     async function loadClassCatalogue() {
         stopClassCatalogue();
         if(catalogueState.suspended || !catalogueRoute(location.pathname))return;
-        var knownGroups=new Map();catalogueRows(document).forEach(function(row){if(row.group!=='未标注班级')knownGroups.set(row.id,row.group);});
+        syncCatalogueDOM();
+        var knownGroups=new Map();catalogueState.rows.forEach(function(row){if(row.group!=='未标注班级')knownGroups.set(row.id,row.group);});
         var job={controller:new AbortController(),deadline:Date.now()+5*60*1000,timer:null};catalogueState.job=job;
         job.timer=setTimeout(function(){job.controller.abort();},5*60*1000);
         catalogueState.status='loading';catalogueState.message='后台读取题集目录…';refreshClassHome();
-        var complete=false,failure='',seen=new Set();
+        var complete=false,failure='',seen=new Set(),apiRows=[],apiTotal=null;
         try{
             for(var page=0;page<50;page++){
                 var data=await catalogueAPI(job,'/api/problem-sets?filter=%7B%7D&page='+page+'&limit=30');
                 catalogueAlive(job);
                 if(!Array.isArray(data.problemSets) || !Number.isInteger(data.total) || data.total<0)throw catalogueFailure('invalid-data');
-                if(catalogueState.total===null)catalogueState.total=data.total;else if(catalogueState.total!==data.total)throw catalogueFailure('pagination');
+                if(apiTotal===null)apiTotal=data.total;else if(apiTotal!==data.total)throw catalogueFailure('pagination');
+                var pageRows=[],pageIds=new Set();
                 for(var i=0;i<data.problemSets.length;i++){
-                    var row=catalogueAPIRow(data.problemSets[i],knownGroups,data.userGroupsByProblemSetId);if(!row || seen.has(row.id))throw catalogueFailure('pagination');
-                    seen.add(row.id);catalogueState.rows.push(row);
+                    var row=catalogueAPIRow(data.problemSets[i],knownGroups,data.userGroupsByProblemSetId);if(!row || seen.has(row.id) || pageIds.has(row.id))throw catalogueFailure('pagination');
+                    pageIds.add(row.id);pageRows.push(row);
                 }
+                pageRows.forEach(function(row){seen.add(row.id);apiRows.push(row);});
+                catalogueState.source='api';catalogueState.rows=apiRows;catalogueState.total=apiTotal;
                 catalogueState.message='目录 '+catalogueState.rows.length+'/'+data.total+'，正在后台读取…';refreshClassHome();
                 if(catalogueState.rows.length===data.total){complete=true;break;}
                 if(catalogueState.rows.length>data.total || !data.problemSets.length)throw catalogueFailure('pagination');
@@ -2476,8 +2526,9 @@ return module.exports; } catch (unavailable) { return null; } })();
                 job.controller.abort();catalogueState.job=null;
                 catalogueState.rows.forEach(function(row){if(row.metricsState==='pending'||row.metricsState==='loading')row.metricsState='unavailable';});
                 var unknownGroups=catalogueState.rows.filter(function(row){return row.group==='班级待确认';}).length;
-                catalogueState.status=complete&&!failure?'ready':'partial';
+                catalogueState.status=complete&&!failure?'ready':'partial';catalogueState.failure=failure;
                 catalogueState.message=(complete?'目录已读取 '+catalogueState.rows.length+' 个。':'目录仅读取 '+catalogueState.rows.length+'/'+(catalogueState.total===null?'未知':catalogueState.total)+' 个。')+(failure?failure+'。':'')+(catalogueState.rows.length>200?'仅检查前200个题集的概览。':'')+(unknownGroups?unknownGroups+' 个题集的班级关系待确认。':'');
+                if(catalogueState.source==='dom')syncCatalogueDOM();
                 refreshClassHome();
             }
         }
@@ -2546,6 +2597,7 @@ return module.exports; } catch (unavailable) { return null; } })();
         classHomeTimer=setInterval(function () {
             if(!catalogueRoute(location.pathname)){if(catalogueState.status!=='idle')stopClassCatalogue();}
             else if(!catalogueState.suspended && catalogueState.status==='idle')loadClassCatalogue();
+            if(catalogueState.source==='dom')syncCatalogueDOM();
             refreshClassHome();
         }, 500);
         if(catalogueRoute(location.pathname)) loadClassCatalogue();
@@ -2606,6 +2658,7 @@ return module.exports; } catch (unavailable) { return null; } })();
                             </div>
                         </div>
                         <details class="pta-field pta-dev-options"><summary>开发者选项</summary>
+                            <div id="pta-dev-collapse" class="pta-dev-collapse"><div class="pta-dev-collapse-inner">
                             <div class="pta-dev-card">
                                 <label class="pta-dev-toggle"><input id="pta-diagnostic-toggle" type="checkbox" aria-describedby="pta-diagnostic-status">页面诊断</label>
                                 <span id="pta-diagnostic-status" class="pta-dev-status">已关闭 · 0 条</span>
@@ -2616,6 +2669,7 @@ return module.exports; } catch (unavailable) { return null; } })();
                                 <span id="pta-api-diagnostic-status" class="pta-dev-status">已关闭 · 0 条</span>
                                 <div class="pta-dev-actions"><button id="pta-api-diagnostic-preview-btn" type="button" class="pta-dev-btn pta-dev-btn-primary" aria-label="查看或导出接口诊断">查看 / 导出</button><button id="pta-api-diagnostic-clear" type="button" class="pta-dev-btn pta-dev-btn-clear" aria-label="清除接口诊断">清除</button></div>
                             </div>
+                        </div></div>
                         </details><div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
                     </div>
                 </div>
@@ -2789,7 +2843,63 @@ return module.exports; } catch (unavailable) { return null; } })();
         assistanceControl(assistance.running);
     }
 
+    function bindDeveloperDisclosure(root) {
+        var details = root.querySelector('.pta-dev-options');
+        if (!details || details._ptaDisclosureBound) return;
+        var summary = details.querySelector('summary'), body = details.querySelector('.pta-dev-collapse');
+        if (!summary || !body) return;
+        details._ptaDisclosureBound = true;
+        var expanded = !!details.open, expectedOpen = expanded, timer = null, version = 0, savedTabs = [];
+        var motion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+        summary.setAttribute('aria-controls', body.id);
+        function accessibility(open) {
+            summary.setAttribute('aria-expanded', String(open));
+            body.setAttribute('aria-hidden', String(!open));
+            if (open) {
+                body.removeAttribute('inert');
+                savedTabs.forEach(function (item) { if (item.value === null) item.node.removeAttribute('tabindex'); else item.node.setAttribute('tabindex', item.value); });
+                savedTabs = [];
+            } else {
+                if (body.contains(document.activeElement)) summary.focus();
+                body.setAttribute('inert', '');
+                if (!savedTabs.length) Array.prototype.forEach.call(body.querySelectorAll('a[href],button,input,select,textarea,[tabindex]'), function (node) {
+                    savedTabs.push({ node: node, value: node.getAttribute('tabindex') }); node.setAttribute('tabindex', '-1');
+                });
+            }
+        }
+        function finish(ticket) {
+            if (ticket !== version) return;
+            clearTimeout(timer); timer = null;
+            expectedOpen = expanded; details.open = expanded;
+            details.removeAttribute('data-dev-animating');
+        }
+        function setExpanded(open) {
+            var wasOpen = !!details.open, ticket = ++version;
+            expanded = open; clearTimeout(timer); timer = null;
+            accessibility(open);
+            if (open) {
+                // Keep native details open throughout either animation. The inner grid
+                // interpolates intrinsic height, so wrapped labels/content stay natural.
+                expectedOpen = true; details.open = true;
+                if (!wasOpen) { details.setAttribute('data-dev-expanded', 'false'); body.getBoundingClientRect(); }
+            }
+            details.setAttribute('data-dev-expanded', String(open));
+            if ((motion && motion.matches) || !wasOpen && !open) { finish(ticket); return; }
+            details.setAttribute('data-dev-animating', 'true');
+            timer = setTimeout(function () { finish(ticket); }, 280);
+        }
+        details.setAttribute('data-dev-expanded', String(expanded)); accessibility(expanded);
+        // Native summary generates click for Enter/Space; do not double-toggle on keydown.
+        summary.addEventListener('click', function (event) { event.preventDefault(); setExpanded(!expanded); });
+        body.addEventListener('transitionend', function (event) { if (event.target === body && event.propertyName === 'grid-template-rows') finish(version); });
+        details.addEventListener('toggle', function () { if (details.open !== expectedOpen) setExpanded(!!details.open); });
+        function reduceMotionChanged() { if (motion.matches) finish(version); }
+        if (motion && motion.addEventListener) motion.addEventListener('change', reduceMotionChanged);
+        else if (motion && motion.addListener) motion.addListener(reduceMotionChanged);
+    }
+
     function bindUI(root) {
+        bindDeveloperDisclosure(root);
         document.getElementById('pta-api-diagnostic-toggle').addEventListener('change',function(){if(this.checked)startApiDiagnostics();else stopApiDiagnostics();});
         document.getElementById('pta-api-diagnostic-preview-btn').addEventListener('click',previewApiDiagnostics);
         document.getElementById('pta-api-diagnostic-clear').addEventListener('click',function(){stopApiDiagnostics();apiDiagnostics.records=[];apiDiagnostics.bytes=0;apiDiagnosticStatus();var preview=document.getElementById('pta-api-diagnostic-preview');if(preview)preview.remove();});
