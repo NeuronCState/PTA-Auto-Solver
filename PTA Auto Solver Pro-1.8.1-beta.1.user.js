@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.4
+// @version      1.8.1-beta.5
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -352,11 +352,19 @@
     }
 
     function detectLanguage(code) {
-        var value = ((code || '') + ' ' + document.title + ' ' + location.href).toLowerCase();
+        // Code is strongest evidence. Course names live in the overview link,
+        // not necessarily document.title; do not scan unrelated option text.
+        var value = String(code || '').toLowerCase();
         if (/public\s+class|system\.out|import\s+java\./.test(value)) return 'java';
         if (/def\s+\w+\s*\(|print\s*\(|import\s+\w+|__name__/.test(value)) return 'python';
-        if (/cout|cin|iostream|std::|vector\s*<|c\+\+|\bcpp\b/.test(value)) return 'cpp';
-        if (/pascal|delphi/.test(value)) return 'pascal';
+        if (/cout|cin|iostream|std::|vector\s*</.test(value)) return 'cpp';
+        if (/#include\s*[<"]|printf\s*\(|scanf\s*\(/.test(value)) return 'c';
+        var titles = queryAll('a[href*="/exam/overview"]').map(textOf).join(' ');
+        var context = (titles + ' ' + document.title + ' ' + location.href).toLowerCase();
+        if (/(^|[^a-z])java(?![a-z])/.test(context)) return 'java';
+        if (/(^|[^a-z])python(?![a-z])/.test(context)) return 'python';
+        if (/c\+\+|\bcpp\b/.test(context)) return 'cpp';
+        if (/pascal|delphi/.test(value + ' ' + context)) return 'pascal';
         return 'c';
     }
 
@@ -365,7 +373,7 @@
         return selected && selected !== 'auto' ? selected : detectLanguage(code || '');
     }
 
-    function languageLabel(code) { return LANG_NAMES[resolveLanguage('', code)] || 'C'; }
+    function languageLabel(preferred, code) { return LANG_NAMES[resolveLanguage(code || '', preferred)] || 'C'; }
 
     function extractOptions(problem) {
         var labels = queryAll('label', problem).filter(function (label) {
@@ -387,7 +395,20 @@
 
     function questionText(problem) {
         var clone = problem.cloneNode(true);
-        queryAll('label, input, button, .cm-editor', clone).forEach(function (el) { el.remove(); });
+        // Read-only CodeMirror blocks are part of the question, not answer inputs.
+        // Read from the live editor first: cloning loses CodeMirror's document state.
+        var editors = queryAll('.cm-editor', problem);
+        queryAll('.cm-editor', clone).forEach(function (copy, index) {
+            var editor = editors[index];
+            var parentClass = String(editor && editor.parentElement && editor.parentElement.className || '');
+            var content = editor && editor.querySelector('.cm-content');
+            var readOnly = /readonly/i.test(parentClass) || content && content.getAttribute('contenteditable') === 'false';
+            if (!readOnly) { copy.remove(); return; }
+            var code = document.createElement('pre');
+            code.textContent = getEditorDoc(editor);
+            copy.replaceWith(code);
+        });
+        queryAll('label, input, button', clone).forEach(function (el) { el.remove(); });
         return cleanText(textOf(clone)).slice(0, 9000);
     }
 
@@ -512,8 +533,12 @@
         if (isTrue || isFalse) {
             wanted = [isTrue ? 'T' : 'F'];
         } else {
-            var chars = answer.toUpperCase().match(/[A-F]/g) || [];
-            wanted = multiple ? chars : chars.slice(-1);
+            // Never treat letters embedded in an explanation (e.g. China) as choices.
+            var match = answer.toUpperCase().match(/^(?:答案\s*(?:是|为|[:：])?\s*)?([A-F](?:[\s,，、]*[A-F])*)[.。]?$/);
+            if (!match) return false;
+            var chars = match[1].match(/[A-F]/g) || [];
+            if (!multiple && chars.length !== 1) return false;
+            wanted = chars;
         }
         var changed = false;
         options.forEach(function (option) {
@@ -554,7 +579,7 @@
     }
 
     function promptFor(type, data, thinking) {
-        var language = languageLabel(data.language || state.language || 'auto');
+        var language = languageLabel(data.language || state.language || 'auto', [data.description, data.code, data.interfaceCode, data.frameworkCode, data.supportCode, data.referenceCode].filter(Boolean).join('\n'));
         var rule = {
             judge: '只输出一行 true 或 false。',
             choice: '只输出一个选项字母，例如 B。',
@@ -882,7 +907,20 @@
         }).filter(Boolean).filter(function (id, index, list) { return list.indexOf(id) === index; });
         var current = currentId ? ids.indexOf(currentId) + 1 : 0;
         if (current > 0 && ids.length > 0) return { current: current, total: ids.length };
-        var summary = textOf(document.body).match(/(?:函数题|编程题|多文件编程题)\s*(\d+)\s*\/\s*(\d+)/);
+        // Match only this route's question type. The sidebar lists all types;
+        // an unscoped search can show the function section's 0/1 on a 41-item
+        // choice page. These counters count questions, never individual blanks.
+        var names = { '1': '判断题', '2': '单选题', '3': '多选题', '4': '填空题', '5': '程序填空题|程序填空', '6': '函数题', '7': '编程题' };
+        var name = typeMatch && names[typeMatch[1]];
+        if (!name) return null;
+        var pattern = new RegExp('(?:^|\\s)(?:' + name + ')\\s*(\\d+)\\s*/\\s*(\\d+)(?:\\s|$)');
+        var typeLinks = queryAll('a').filter(function (link) {
+            var href = link.href || link.getAttribute('href') || '';
+            return href.split(/[?#]/)[0].replace(/\/$/, '') === location.href.split(/[?#]/)[0].replace(/\/$/, '');
+        });
+        var summary = null;
+        for (var i = 0; i < typeLinks.length && !summary; i++) summary = textOf(typeLinks[i]).match(pattern);
+        if (!summary) summary = textOf(document.body).match(pattern);
         return summary ? { current: Number(summary[1]), total: Number(summary[2]) } : null;
     }
 
