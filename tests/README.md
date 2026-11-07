@@ -15,3 +15,7 @@ Single-question mode now stops after the first eligible question group on the cu
 Diagnostics: `node tests/diagnostics.cjs` tests default-off, URL/token filtering, host restriction, mutation scheduling throttle, count/byte limits, stop cleanup, and absence of network/storage calls. These are mocked unit checks, not full browser DOM sanitization assurance. Real authenticated PTA capture/export UI and redaction must be verified before sharing captured data.
 
 Beta.3 diagnostics tests additionally cover pending text becoming a graded result before the throttle fires, retaining final results after 30 changes, byte-budget eviction, duplicate snapshots, and a final capture at the time cutoff.
+
+Beta.5 additionally tests preserving read-only CodeMirror question code from the live document, excluding writable answers, literal B-to-B mapping, rejecting explanatory text instead of harvesting A-F from words, and explicit multiple-choice letters. These are VM mocks, not a recorded model request or real page click.
+
+Run `node tests/progress-language.cjs` for current-type progress counters (including conflicting sidebar totals, both fill routes, and ID-based navigation), JAVA course-title detection, JavaScript exclusion, code evidence, and manual-language precedence. These are sanitized mock regressions rather than authenticated end-to-end tests.
