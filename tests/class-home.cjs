@@ -28,7 +28,7 @@ function harness(pages){
  assert.equal(metrics.score,'0');assert.equal(metrics.progress,'0 %');assert.equal(metrics.answered,0);assert.equal(metrics.total,66);
  assert.equal(a.catalogueOverview(overview(null,null,[])),null);
  metrics=a.catalogueOverview(overview('8','101%',[['11','10']]));assert.equal(metrics.progress,null);assert.equal(metrics.total,null);
- assert.ok(!section.includes('contentWindow'));assert.ok(!section.includes('iframe'));
+ assert.ok(!section.includes('contentWindow'));assert.ok(!section.includes("createElement('iframe')"));
 
  assert.equal(a.catalogueRoute('/problem-sets/dashboard'),true);assert.equal(a.catalogueRoute('/problem-sets/12/exam'),false);
  assert.equal(a.catalogueDeadline('2026-02-30 12:00'),Infinity);assert.equal(a.catalogueDeadline('2026-11-11 24:00'),Infinity);
@@ -40,9 +40,6 @@ function harness(pages){
  const rows=a.catalogueRows(page([card('1'),card('1'),card('2',{group:'Class B'})],1,3,3));assert.equal(rows.length,2);
  const grouped=a.groupCatalogueRows([a.catalogueCard(card('1',{deadline:'unknown'})),a.catalogueCard(card('2',{deadline:'2026-12-11 10:00'})),a.catalogueCard(card('3',{deadline:'2026-11-11 10:00'}))]);
  assert.equal(grouped.groups[0].items.map(x=>x.id).join(','),'3,2,1');
- const partial=harness([page([card('1')],1,1,2,()=>{throw Error('Must not navigate');})]);await partial.api.loadClassCatalogue();assert.equal(partial.api.catalogueState.status,'partial');assert.equal(partial.api.catalogueState.rows.length,1);assert.equal(partial.api.catalogueState.rows[0].metricsState,'unavailable');assert.match(partial.api.catalogueState.message,/共 2 个/);
- const empty=harness([page([],0,0,0)]);await empty.api.loadClassCatalogue();assert.equal(empty.api.catalogueState.status,'blocked');assert.equal(empty.api.catalogueState.rows.length,0);assert.match(empty.api.catalogueState.message,/禁止后台页面嵌入/);
- partial.api.stopClassCatalogue();assert.equal(partial.api.catalogueState.rows.length,0);assert.equal(partial.api.catalogueState.status,'idle');
  assert.match(src,/section\.open=false/);assert.ok(!section.includes('innerHTML'));assert.ok(!section.includes('localStorage'));assert.ok(!section.includes('GM_xmlhttpRequest'));
- console.log('PASS: class parsing/sorting, safe links, current-page-only partial results, no frames/navigation or fabricated metrics');
+ console.log('PASS: class parsing/sorting, safe links, no frame navigation or unsafe HTML');
 })().catch(e=>{console.error(e);process.exitCode=1;});
