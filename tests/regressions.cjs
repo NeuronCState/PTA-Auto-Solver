@@ -86,3 +86,36 @@ async function nonProgrammingMode(name, continuous, skipFirst=false) {
  assert.equal(parser('提交结果 分数 12 / 20 部分正确').score,12);
  console.log('PASS: pending/zero/stale scores, skip navigation, missing editor stop, continuous off');
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
+// Selection must not harvest A-F from explanatory words or code.
+{
+ const clicked=[];
+ const options=['A','B','C','D'].map(label=>({label,text:label,input:{click:()=>clicked.push(label)}}));
+ const context={extractOptions:()=>options};
+ const choose=vm.runInNewContext(section('    function parseAnswer(', '    function groupFillInputs')+'writeChoice',context);
+ assert.equal(choose({},'B',false),true);
+ assert.deepEqual(clicked,['B']);
+ clicked.length=0;
+ assert.equal(choose({},'B，因为 China 中的国下标是1',false),false);
+ assert.deepEqual(clicked,[]);
+ assert.equal(choose({},'答案：B',false),true);
+ assert.equal(choose({},'AB',false),false);
+ clicked.length=0;
+ assert.equal(choose({},'ACD',true),true);
+ assert.deepEqual(clicked,['A','C','D']);
+}
+
+// Preserve live read-only question code; omit writable answer editors and options.
+{
+ const code='String fileName = "中国China";\nSystem.out.println(fileName.indexOf("国"));';
+ const live=[{parentElement:{className:'codeEditor readOnly_abc'},querySelector:()=>null,doc:code},{parentElement:{className:'codeEditor'},querySelector:()=>null,doc:'private answer'}];
+ const clone={parts:['题目','editor0','editor1','option']};
+ const copies=live.map((_,i)=>({remove:()=>{clone.parts[i+1]='';},replaceWith:node=>{clone.parts[i+1]=node.textContent;}}));
+ const problem={cloneNode:()=>clone};
+ const context={queryAll:(selector,root)=>selector==='.cm-editor'?(root===problem?live:copies):[{remove:()=>{clone.parts[3]='';}}],getEditorDoc:e=>e.doc,document:{createElement:()=>({textContent:''})},textOf:()=>clone.parts.join('\n'),cleanText:s=>s};
+ const extract=vm.runInNewContext(section('    function questionText(', '    function problemCodeBlocks')+'questionText',context);
+ const actual=extract(problem);
+ assert.ok(actual.includes(code));
+ assert.ok(!actual.includes('private answer'));
+ assert.ok(!actual.includes('option'));
+}
