@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.11
+// @version      1.8.1-beta.12
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -2154,6 +2154,38 @@ return module.exports; } catch (unavailable) { return null; } })();
         .pta-assist button:focus-visible, .pta-assist pre:focus-visible { outline:3px solid #818cf8; outline-offset:3px; }
 
     #pta-root{--pta-bg:#fff;--pta-panel:#f8f9fc;--pta-text:#17181c;--pta-muted:#737782;--pta-line:#e7e9ee;--pta-accent:#635bff;--pta-accent-soft:#eeedff;--pta-success:#219653;--pta-warn:#b7791f;position:fixed;right:22px;bottom:22px;z-index:2147483000;font:13px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--pta-text)}
+    /* Developer controls: local styles, no changes to recording/export behavior. */
+    #pta-root .pta-dev-options{margin-top:16px;border:1px solid var(--pta-line);border-radius:12px;overflow:hidden;background:var(--pta-panel)}
+    #pta-root .pta-dev-options>summary{padding:12px;min-height:44px;font-size:12px;font-weight:650;color:var(--pta-text);cursor:pointer;user-select:none}
+    #pta-root .pta-dev-options>summary::marker{color:var(--pta-muted)}
+    #pta-root .pta-dev-options>summary:hover{background:var(--pta-accent-soft)}
+    #pta-root .pta-dev-options[open]>summary{border-bottom:1px solid var(--pta-line)}
+    #pta-root .pta-dev-card{margin:10px;padding:12px;border:1px solid var(--pta-line);border-radius:10px;background:var(--pta-bg);min-width:0}
+    #pta-root .pta-dev-card .pta-dev-toggle{display:flex;align-items:center;justify-content:flex-start;gap:9px;min-height:36px;margin:0;font-size:12px;color:var(--pta-text);cursor:pointer}
+    #pta-root .pta-dev-toggle input[type=checkbox]{appearance:auto;flex:0 0 auto;width:16px;height:16px;margin:0;padding:0;accent-color:var(--pta-accent);box-shadow:none;cursor:pointer}
+    #pta-root .pta-dev-status{display:block;margin:4px 0 12px 25px;font-size:11px;line-height:1.6;color:var(--pta-muted);overflow-wrap:anywhere}
+    #pta-root .pta-dev-actions{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:8px}
+    #pta-root .pta-dev-btn,.pta-dev-preview .pta-dev-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:44px;padding:8px 12px;border:1px solid var(--pta-line,#e7e9ee);border-radius:8px;background:var(--pta-bg,#fff);color:var(--pta-text,#17181c);font:600 12px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
+    #pta-root .pta-dev-btn-primary,.pta-dev-preview .pta-dev-btn-primary{background:var(--pta-accent-soft,#eeedff);border-color:var(--pta-accent,#635bff);color:var(--pta-accent,#635bff)}
+    #pta-root .pta-dev-btn:not(:disabled):hover,.pta-dev-preview .pta-dev-btn:not(:disabled):hover{background:var(--pta-accent-soft,#eeedff);border-color:var(--pta-accent,#635bff);color:var(--pta-accent,#635bff)}
+    #pta-root .pta-dev-btn-primary:not(:disabled):hover,.pta-dev-preview .pta-dev-btn-primary:not(:disabled):hover{background:var(--pta-accent,#635bff);color:#fff}
+    #pta-root .pta-dev-btn-clear:not(:disabled):hover{border-color:#b42318;background:#fff1f0;color:#b42318}
+    #pta-root .pta-dev-options>summary:focus-visible,#pta-root .pta-dev-btn:focus-visible,#pta-root .pta-dev-toggle input:focus-visible,.pta-dev-preview .pta-dev-btn:focus-visible,.pta-dev-preview textarea:focus-visible{outline:2px solid var(--pta-accent,#635bff);outline-offset:3px}
+    #pta-root .pta-dev-options>summary:focus-visible{outline-offset:-4px}
+    #pta-root .pta-dev-btn:disabled,.pta-dev-preview .pta-dev-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+    #pta-root .pta-dev-btn:not(:disabled):active,.pta-dev-preview .pta-dev-btn:not(:disabled):active{filter:brightness(.94)}
+    html.pta-theme-dark #pta-root .pta-dev-btn-clear:not(:disabled):hover{background:#492522;border-color:#fda29b;color:#fda29b}
+    html.pta-theme-dark #pta-root .pta-dev-btn-primary:not(:disabled):hover{color:#111}
+    .pta-dev-preview{--pta-bg:#fff;--pta-text:#17181c;--pta-line:#e7e9ee;--pta-accent:#111;--pta-accent-soft:rgba(0,0,0,.07);background:#fff;color:#17181c;padding:20px;border:1px solid #e7e9ee;border-radius:14px;width:min(90vw,800px);max-height:90vh;overflow:auto;box-sizing:border-box;font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+    .pta-dev-preview h3{margin:0 0 12px;font-size:16px}
+    .pta-dev-preview textarea{display:block;width:100%;height:55vh;max-height:60vh;box-sizing:border-box;resize:vertical;padding:12px;border:1px solid #d4d7df;border-radius:8px;background:#f8f9fc;color:inherit;font:12px/1.6 ui-monospace,monospace}
+    .pta-dev-preview .pta-dev-btn{margin:12px 8px 0 0}
+    html.pta-theme-dark .pta-dev-preview{--pta-bg:#202127;--pta-text:#f5f5f5;--pta-line:#41424a;--pta-accent:#f5f5f5;--pta-accent-soft:rgba(255,255,255,.1);background:var(--pta-bg);color:var(--pta-text);border-color:var(--pta-line)}
+    html.pta-theme-dark .pta-dev-preview textarea{background:#17181d;border-color:var(--pta-line)}
+    html.pta-theme-dark .pta-dev-preview .pta-dev-btn-primary:not(:disabled):hover{color:#17181c}
+    @media(max-width:380px){#pta-root .pta-dev-card{margin:8px;padding:10px}#pta-root .pta-dev-actions{gap:6px}#pta-root .pta-dev-btn{padding:8px 6px}.pta-dev-preview{padding:14px}}
+    @media(prefers-reduced-motion:reduce){#pta-root .pta-dev-btn,.pta-dev-preview .pta-dev-btn{transition:none}}
+
     .pta-platform-link{color:var(--pta-text);font-weight:600;font-size:11px;text-align:right;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:2px}.pta-platform-link:hover{color:var(--pta-accent)}.pta-platform-link:focus-visible{outline:2px solid var(--pta-accent);outline-offset:3px;border-radius:2px}
     #pta-root *{box-sizing:border-box}#pta-shell{position:relative;z-index:2;width:390px;height:554px;max-height:calc(100vh - 44px);border:1px solid rgba(20,24,40,.12);border-radius:18px;background:var(--pta-bg);box-shadow:0 18px 55px rgba(22,24,40,.18),0 3px 12px rgba(22,24,40,.08);overflow:hidden;transition:width .72s cubic-bezier(.16,1,.3,1),height .72s cubic-bezier(.16,1,.3,1),border-radius .72s cubic-bezier(.16,1,.3,1)}
     #pta-shell.collapsed{width:58px;height:58px;border-radius:19px;cursor:pointer}
@@ -2196,6 +2228,10 @@ return module.exports; } catch (unavailable) { return null; } })();
     .pta-range-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
     .pta-range-head label{display:block;font-size:11px;font-weight:600;color:var(--pta-muted);margin:0}
     .pta-range-badge{font-size:11px;font-weight:600;color:var(--pta-text);background:rgba(0,0,0,.05);padding:2px 7px;border-radius:6px;border:1px solid var(--pta-line);white-space:nowrap}
+    #pta-class-home .pta-catalog-body{overflow:hidden}
+    #pta-class-home .pta-catalog-items{max-height:min(240px,38vh);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:5px}
+    #pta-class-home .pta-catalog-items:focus-visible{outline:2px solid var(--pta-text);outline-offset:-2px}
+    #pta-class-home .pta-catalog-note{margin:8px 0 0;font-size:10px;line-height:1.4}
     #pta-root .pta-options > .pta-check{min-width:0;min-height:36px;padding:6px;gap:0;white-space:normal;line-height:1.35;text-align:center;overflow-wrap:anywhere}
     .pta-range-wrap{position:relative;width:100%;margin-top:2px}
     .pta-range{display:block;width:100%;height:6px;margin:8px 0 6px;-webkit-appearance:none;appearance:none;background:var(--pta-line);border-radius:99px;outline:none;cursor:pointer;transition:background .2s ease}
@@ -2269,15 +2305,15 @@ return module.exports; } catch (unavailable) { return null; } })();
         return rows;
     }
     function groupCatalogueRows(rows) {
-        var groups = new Map();
-        rows.forEach(function (row) { if (!groups.has(row.group)) groups.set(row.group, []); groups.get(row.group).push(row); });
-        var result = [];
-        groups.forEach(function (items, name) {
-            items.sort(function (a,b) { return a.deadlineOrder - b.deadlineOrder || a.title.localeCompare(b.title); });
-            result.push({ name: name, items: items });
+        var groups=new Map();
+        rows.forEach(function(row){
+            var memberships=row.groups&&row.groups.length?row.groups:[{id:'',name:row.group}];
+            memberships.forEach(function(group){var key=group.id?'id:'+group.id:'name:'+group.name;if(!groups.has(key))groups.set(key,{key:key,name:group.name,items:[]});groups.get(key).items.push(row);});
         });
-        result.sort(function (a,b) { return a.name === '未标注班级' ? 1 : b.name === '未标注班级' ? -1 : a.name.localeCompare(b.name); });
-        return { count: rows.length, groups: result };
+        var result=Array.from(groups.values());
+        result.forEach(function(group){group.items.sort(function(a,b){return a.deadlineOrder-b.deadlineOrder || a.title.localeCompare(b.title);});});
+        result.sort(function(a,b){return /^(未标注班级|班级待确认)$/.test(a.name)?1:/^(未标注班级|班级待确认)$/.test(b.name)?-1:a.name.localeCompare(b.name);});
+        return {count:rows.length,groups:result};
     }
     function cataloguePagination(doc) {
         var summary=doc.querySelector('[class*="paginationSummary_"]');
@@ -2318,24 +2354,148 @@ return module.exports; } catch (unavailable) { return null; } })();
         });
         return {score:score,progress:progress,answered:found?answered:null,total:found?total:null};
     }
-    // PTA sends X-Frame-Options: DENY for the normal directory document.
-    // Do not attempt hidden frames or bypass embedding restrictions. Until a
-    // supported data source is verified, only read the current visible document.
-    var catalogueState={ rows:[],status:'idle',message:'',run:0,route:'',suspended:false };
+    // Read-only same-origin API adapter. No iframe, credentials inspection,
+    // POST/PUT, exam creation, visible navigation or model requests.
+    var catalogueState={rows:[],status:'idle',message:'',run:0,suspended:false,job:null,total:null};
+    var catalogueNextStart=0;
+    function catalogueFailure(code) {var e=new Error(code);e.catalogueCode=code;return e;}
+    function catalogueAlive(job) {
+        if(catalogueState.job!==job || catalogueState.suspended || !catalogueRoute(location.pathname))throw catalogueFailure('cancelled');
+        if(Date.now()>=job.deadline)throw catalogueFailure('deadline');
+        if(job.controller.signal.aborted)throw catalogueFailure('cancelled');
+    }
     function stopClassCatalogue() {
-        catalogueState.run++;catalogueState.rows=[];catalogueState.status='idle';catalogueState.message='';
+        if(catalogueState.job){catalogueState.job.controller.abort();clearTimeout(catalogueState.job.timer);}
+        catalogueState.job=null;catalogueState.run++;catalogueState.rows=[];catalogueState.status='idle';catalogueState.message='';catalogueState.total=null;
+    }
+    async function catalogueAPI(job,path) {
+        catalogueAlive(job);
+        var url=new URL(path,'https://pintia.cn');
+        if(location.origin!=='https://pintia.cn' || url.origin!==location.origin || (!/^\/api\/problem-sets$/.test(url.pathname) && !/^\/api\/problem-sets\/\d+\/exams$/.test(url.pathname) && !/^\/api\/exams\/\d+\/problem-sets\/\d+\/problem-status$/.test(url.pathname)))throw catalogueFailure('invalid-route');
+        var start=Math.max(Date.now(),catalogueNextStart);catalogueNextStart=start+500;
+        if(start>Date.now())await new Promise(function(resolve){setTimeout(resolve,start-Date.now());});
+        catalogueAlive(job);
+        var controller=new AbortController(),abort=function(){controller.abort();};job.controller.signal.addEventListener('abort',abort,{once:true});
+        var timer=setTimeout(abort,15000);
+        try{
+            var response=await fetch(url.href,{method:'GET',credentials:'same-origin',mode:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal});
+            catalogueAlive(job);
+            if(response.status===401)throw catalogueFailure('login');
+            if(response.status===403)throw catalogueFailure('permission');
+            if(response.status===429)throw catalogueFailure('rate-limit');
+            if(!response.ok)throw catalogueFailure('http');
+            if(response.redirected || new URL(response.url).origin!==location.origin || new URL(response.url).pathname!==url.pathname)throw catalogueFailure('redirect');
+            if(!response.body || !response.body.getReader)throw catalogueFailure('unsupported-stream');
+            var reader=response.body.getReader(),parts=[],length=0;
+            while(true){var part=await reader.read();catalogueAlive(job);if(part.done)break;length+=part.value.byteLength;if(length>2*1024*1024){reader.cancel().catch(function(){});throw catalogueFailure('too-large');}parts.push(part.value);}
+            var bytes=new Uint8Array(length),offset=0;parts.forEach(function(p){bytes.set(p,offset);offset+=p.byteLength;});
+            var data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch(_){throw catalogueFailure('invalid-json');}
+            if(!data || typeof data!=='object' || Array.isArray(data))throw catalogueFailure('invalid-data');
+            return data;
+        }catch(e){if(e.catalogueCode)throw e;if(job.controller.signal.aborted)throw catalogueFailure(Date.now()>=job.deadline?'deadline':'cancelled');throw catalogueFailure(controller.signal.aborted?'timeout':'network');}
+        finally{clearTimeout(timer);job.controller.signal.removeEventListener('abort',abort);}
+    }
+    function catalogueAPIRow(raw,knownGroups,groupMap) {
+        if(!raw || typeof raw.id!=='string' || !/^\d{1,25}$/.test(raw.id) || typeof raw.name!=='string' || !raw.name.trim())return null;
+        var end=typeof raw.endAt==='string'?Date.parse(raw.endAt):NaN,start=typeof raw.startAt==='string'?Date.parse(raw.startAt):NaN;
+        var relation=groupMap&&Object.prototype.hasOwnProperty.call(groupMap,raw.id)?groupMap[raw.id]:null,memberships=[],groupIds=new Set();
+        if(relation && Array.isArray(relation.items))relation.items.forEach(function(group){if(group&&typeof group.id==='string'&&/^\d{1,25}$/.test(group.id)&&typeof group.name==='string'&&group.name.trim()&&!groupIds.has(group.id)){groupIds.add(group.id);memberships.push({id:group.id,name:group.name.trim().slice(0,200)});}});
+        var groupName=memberships.length?memberships[0].name:relation&&Array.isArray(relation.items)&&relation.items.length===0?'未标注班级':knownGroups.get(raw.id)||'班级待确认';
+        return {id:raw.id,title:raw.name.trim().slice(0,300),group:groupName,groups:memberships,deadline:Number.isFinite(end)?new Date(end).toLocaleString('zh-CN',{hour12:false}):'',deadlineOrder:Number.isFinite(end)?end:Infinity,status:Number.isFinite(start)&&start>Date.now()?'未开放':Number.isFinite(end)&&end<Date.now()?'已关闭':Number.isFinite(start)?'已开放':'状态未提供',href:'https://pintia.cn/problem-sets/'+raw.id+'/exam',metricsState:'pending'};
+    }
+    function catalogueAPIMetrics(examData,statusData) {
+        var exam=examData&&examData.exam,score=exam&&typeof exam.score==='number'&&Number.isFinite(exam.score)&&exam.score>=0?String(exam.score):null;
+        var result={score:score,answered:null,total:null,progress:null},rows=statusData&&statusData.problemStatus;
+        if(!Array.isArray(rows))return result;
+        var seen=new Set(),answered=0,valid=true;
+        rows.forEach(function(row){
+            if(!row || typeof row.id!=='string' || !/^\d{1,25}$/.test(row.id) || seen.has(row.id)){valid=false;return;}seen.add(row.id);
+            if(['PROBLEM_SUBMITTED','PROBLEM_ACCEPTED','PROBLEM_WRONG_ANSWER'].indexOf(row.problemSubmissionStatus)>=0)answered++;
+            else if(row.problemSubmissionStatus!=='PROBLEM_NO_ANSWER')valid=false;
+        });
+        result.total=rows.length;
+        if(statusData.total!==undefined && (!Number.isInteger(statusData.total)||statusData.total!==rows.length))valid=false;
+        if(statusData.examLabelByProblemSetProblemId && (Object.keys(statusData.examLabelByProblemSetProblemId).length!==rows.length || rows.some(function(row){return !row || !Object.prototype.hasOwnProperty.call(statusData.examLabelByProblemSetProblemId,row.id);})))valid=false;
+        if(valid){result.answered=answered;result.progress=(rows.length?Math.round(answered/rows.length*1000)/10:0)+'%';}
+        return result;
+    }
+    function catalogueErrorText(code) {
+        return {login:'登录状态失效，已停止读取',permission:'没有读取权限', 'rate-limit':'平台限流，已停止读取',deadline:'达到读取时限',cancelled:'读取已取消',timeout:'读取超时',network:'网络或登录跳转阻止读取','invalid-data':'接口结构不符合已验证格式','invalid-json':'返回内容不是有效JSON','too-large':'响应超过大小限制',pagination:'目录分页变化或重复，未宣称完整'}[code]||'未能读取';
     }
     async function loadClassCatalogue() {
         stopClassCatalogue();
-        if(catalogueState.suspended || !catalogueRoute(location.pathname)) return;
-        var rows=catalogueRows(document),page=cataloguePagination(document);
-        catalogueState.rows=rows;
-        rows.forEach(function(item){item.metricsState='unavailable';});
-        catalogueState.status=rows.length?'partial':'blocked';
-        catalogueState.message=rows.length
-            ? '仅显示当前页面已加载的 '+rows.length+' 个题集'+(page?'（目录共 '+page.total+' 个）':'')+'。后台读取暂不可用，未读取其他分页和概览。'
-            : 'PTA 禁止后台页面嵌入，暂时无法自动读取班级题集与分数。脚本未切换页面，也不会绕过浏览器保护。';
-        refreshClassHome();
+        if(catalogueState.suspended || !catalogueRoute(location.pathname))return;
+        var knownGroups=new Map();catalogueRows(document).forEach(function(row){if(row.group!=='未标注班级')knownGroups.set(row.id,row.group);});
+        var job={controller:new AbortController(),deadline:Date.now()+5*60*1000,timer:null};catalogueState.job=job;
+        job.timer=setTimeout(function(){job.controller.abort();},5*60*1000);
+        catalogueState.status='loading';catalogueState.message='后台读取题集目录…';refreshClassHome();
+        var complete=false,failure='',seen=new Set();
+        try{
+            for(var page=0;page<50;page++){
+                var data=await catalogueAPI(job,'/api/problem-sets?filter=%7B%7D&page='+page+'&limit=30');
+                catalogueAlive(job);
+                if(!Array.isArray(data.problemSets) || !Number.isInteger(data.total) || data.total<0)throw catalogueFailure('invalid-data');
+                if(catalogueState.total===null)catalogueState.total=data.total;else if(catalogueState.total!==data.total)throw catalogueFailure('pagination');
+                for(var i=0;i<data.problemSets.length;i++){
+                    var row=catalogueAPIRow(data.problemSets[i],knownGroups,data.userGroupsByProblemSetId);if(!row || seen.has(row.id))throw catalogueFailure('pagination');
+                    seen.add(row.id);catalogueState.rows.push(row);
+                }
+                catalogueState.message='目录 '+catalogueState.rows.length+'/'+data.total+'，正在后台读取…';refreshClassHome();
+                if(catalogueState.rows.length===data.total){complete=true;break;}
+                if(catalogueState.rows.length>data.total || !data.problemSets.length)throw catalogueFailure('pagination');
+            }
+            // At most 200 sets are inspected per run; the UI reports any remainder.
+            var queue=catalogueState.rows.slice(0,200),index=0,completed=0;
+            async function worker(){
+                while(index<queue.length){
+                    catalogueAlive(job);var item=queue[index++];item.metricsState='loading';
+                    try{
+                        var exam=await catalogueAPI(job,'/api/problem-sets/'+item.id+'/exams');
+                        catalogueAlive(job);
+                        if(exam.exam && exam.exam.problemSetId!==undefined && exam.exam.problemSetId!==item.id)throw catalogueFailure('invalid-data');
+                        item.metrics=catalogueAPIMetrics(exam,null);
+                        if(!exam.exam || typeof exam.exam.id!=='string' || !/^\d{1,25}$/.test(exam.exam.id)){item.metricsState='unavailable';item.metricsNote='尚无考试记录，未自动开考';}
+                        else{
+                            var statuses=await catalogueAPI(job,'/api/exams/'+exam.exam.id+'/problem-sets/'+item.id+'/problem-status');
+                            catalogueAlive(job);
+                            item.metrics=catalogueAPIMetrics(exam,statuses);item.metricsState='ready';
+                            if(item.metrics.answered===null)item.metricsNote='出现未验证状态，作答进度未知';
+                        }
+                    }catch(e){
+                        catalogueAlive(job);item.metricsState='unavailable';item.metricsNote=catalogueErrorText(e.catalogueCode);
+                        if(e.catalogueCode==='login'||e.catalogueCode==='rate-limit'){failure=item.metricsNote;job.controller.abort();throw e;}
+                    }
+                    catalogueAlive(job);completed++;catalogueState.message='目录 '+catalogueState.rows.length+'/'+catalogueState.total+'；概览 '+completed+'/'+queue.length+'（本次已保存数据）';refreshClassHome();
+                }
+            }
+            await Promise.all([worker(),worker()]);
+        }catch(e){if(!failure)failure=catalogueErrorText(e.catalogueCode);}
+        finally{
+            clearTimeout(job.timer);
+            if(catalogueState.job===job){
+                job.controller.abort();catalogueState.job=null;
+                catalogueState.rows.forEach(function(row){if(row.metricsState==='pending'||row.metricsState==='loading')row.metricsState='unavailable';});
+                var unknownGroups=catalogueState.rows.filter(function(row){return row.group==='班级待确认';}).length;
+                catalogueState.status=complete&&!failure?'ready':'partial';
+                catalogueState.message=(complete?'目录已读取 '+catalogueState.rows.length+' 个。':'目录仅读取 '+catalogueState.rows.length+'/'+(catalogueState.total===null?'未知':catalogueState.total)+' 个。')+(failure?failure+'。':'')+(catalogueState.rows.length>200?'仅检查前200个题集的概览。':'')+(unknownGroups?unknownGroups+' 个题集的班级关系待确认。':'');
+                refreshClassHome();
+            }
+        }
+    }
+    function toggleCatalogueGroup(section, body, summary) {
+        var expand = section.dataset.expanded !== 'true';
+        var height = section.open ? body.getBoundingClientRect().height : 0;
+        if (section.ptaAnimation) { section.ptaAnimation.cancel(); section.ptaAnimation = null; }
+        section.dataset.expanded = String(expand); summary.setAttribute('aria-expanded', String(expand));
+        var reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced || typeof body.animate !== 'function') { section.open = expand; return; }
+        section.open = true;
+        var animation = body.animate([{height:height+'px',opacity:expand?0.4:1},{height:(expand?body.scrollHeight:0)+'px',opacity:expand?1:0}],{duration:180,easing:'ease-out',fill:'both'});
+        section.ptaAnimation = animation;
+        animation.onfinish = function () {
+            if(section.ptaAnimation !== animation) return;
+            section.open = expand; section.ptaAnimation = null; animation.cancel();
+        };
     }
     var catalogueSignature = '';
     function refreshClassHome() {
@@ -2347,26 +2507,34 @@ return module.exports; } catch (unavailable) { return null; } })();
         var data=groupCatalogueRows(catalogueState.rows), signature=location.href+'|'+catalogueState.status+'|'+catalogueState.message+'|'+JSON.stringify(data);
         if (signature===catalogueSignature) return;
         catalogueSignature=signature;
-        var opened=new Set(Array.from(view.querySelectorAll('details[open]')).map(function(el){return el.dataset.group;}));
+        var opened=new Set(), scrollPositions=new Map(), outerScroll=view.scrollTop;
+        Array.from(view.querySelectorAll('details')).forEach(function(el){
+            if(el.dataset.expanded==='true' || (el.dataset.expanded===undefined && el.open))opened.add(el.dataset.group);
+            var list=el.querySelector('.pta-catalog-items');if(list)scrollPositions.set(el.dataset.group,list.scrollTop);
+        });
         var fragment=document.createDocumentFragment();
         function node(tag,text,cls) { var el=document.createElement(tag); if (text!==undefined) el.textContent=text; if(cls) el.className=cls;return el; }
         fragment.appendChild(node('strong','班级题集','pta-catalog-title'));
         var refresh=node('button','重新读取','pta-link-btn');refresh.type='button';refresh.disabled=catalogueState.status==='loading';refresh.addEventListener('click',loadClassCatalogue);fragment.appendChild(refresh);
-        fragment.appendChild(node('p',catalogueState.message || '准备读取班级目录…','pta-catalog-note'));
-        fragment.appendChild(node('p','每班按截止日期由近到远；日期未知置后。目前仅展示当前页面已加载的目录，后台进度与分数暂不可用；未读取不代表0。','pta-catalog-note'));
         data.groups.forEach(function (group) {
-            var section=node('details',undefined,'pta-catalog-group'); section.open=false;section.dataset.group=group.name;if(opened.has(group.name))section.open=true;
-            section.appendChild(node('summary',group.name+' · '+group.items.length));
-            var list=node('ul');
+            var section=node('details',undefined,'pta-catalog-group'); section.open=false;section.dataset.group=group.key||group.name;if(opened.has(group.key||group.name))section.open=true;
+            section.dataset.expanded=String(section.open);
+            var summary=node('summary',group.name+' · '+group.items.length);summary.setAttribute('aria-expanded',String(section.open));section.appendChild(summary);
+            var body=node('div',undefined,'pta-catalog-body'),list=node('ul',undefined,'pta-catalog-items');
+            list.tabIndex=0;list.setAttribute('aria-label',group.name+' 题集');
+            summary.addEventListener('click',function(event){event.preventDefault();toggleCatalogueGroup(section,body,summary);});
             group.items.forEach(function (item) {
                 var li=node('li'), link=node('a',item.title);link.href=item.href;li.appendChild(link);
                 li.appendChild(node('div','截止 '+(item.deadline || '未提供')+' · '+item.status,'pta-catalog-meta'));
                 var m=item.metrics;
-                li.appendChild(node('div',m ? '已作答 '+(m.answered===null?'未提供':m.answered+'/'+m.total)+' · 进度 '+(m.progress===null?'未提供':m.progress)+' · 分数 '+(m.score===null?'未提供':m.score) : '进度 / 分数：'+(item.metricsState==='unavailable'?'未能读取':item.metricsState==='loading'?'读取中…':'等待读取…'),'pta-catalog-meta'));list.appendChild(li);
+                li.appendChild(node('div',m ? '已作答 '+(m.answered===null?'未提供':m.answered+'/'+m.total)+' · 进度 '+(m.progress===null?'未提供':m.progress)+' · 分数 '+(m.score===null?'未提供':m.score) : '进度 / 分数：'+(item.metricsState==='unavailable'?'未能读取':item.metricsState==='loading'?'读取中…':'等待读取…'),'pta-catalog-meta'));if(item.metricsNote)li.appendChild(node('div',item.metricsNote,'pta-catalog-meta'));list.appendChild(li);
             });
-            section.appendChild(list);fragment.appendChild(section);
+            body.appendChild(list);section.appendChild(body);fragment.appendChild(section);
         });
+        fragment.appendChild(node('p',(catalogueState.message || '准备读取…')+' 已保存进度 · 未知不代表0。','pta-catalog-note'));
         view.replaceChildren(fragment);
+        Array.from(view.querySelectorAll('details')).forEach(function(el){var list=el.querySelector('.pta-catalog-items');if(list)list.scrollTop=scrollPositions.get(el.dataset.group)||0;});
+        view.scrollTop=outerScroll;
     }
     var classHomeTimer=null;
     function startClassHome() {
@@ -2376,10 +2544,8 @@ return module.exports; } catch (unavailable) { return null; } })();
         window.addEventListener('pageshow',function(){catalogueState.suspended=false;refreshClassHome();});
         // Works with React updates, history navigation and reused DOM without touching PTA's cards.
         classHomeTimer=setInterval(function () {
-            if(!catalogueState.suspended && catalogueRoute(location.pathname)) {
-                var rows=catalogueRows(document);
-                if(catalogueState.status==='idle' || JSON.stringify(rows)!==JSON.stringify(catalogueState.rows.map(function(item){var row=Object.assign({},item);delete row.metricsState;return row;}))) loadClassCatalogue();
-            }
+            if(!catalogueRoute(location.pathname)){if(catalogueState.status!=='idle')stopClassCatalogue();}
+            else if(!catalogueState.suspended && catalogueState.status==='idle')loadClassCatalogue();
             refreshClassHome();
         }, 500);
         if(catalogueRoute(location.pathname)) loadClassCatalogue();
@@ -2387,7 +2553,7 @@ return module.exports; } catch (unavailable) { return null; } })();
 
     function render() {
         if (document.getElementById('pta-root')) return;
-        var style = document.createElement('style'); style.id = 'pta-style'; style.textContent = CSS + '\n    .pta-expanded.pta-catalog-mode > :not(#pta-class-home){display:none!important}\n    #pta-class-home{padding:0 2px 10px;max-height:60vh;overflow:auto;color:inherit;text-align:left}\n    #pta-class-home[hidden]{display:none!important}\n    .pta-catalog-title{font-size:15px}.pta-catalog-nav{display:flex;gap:12px;margin:10px 0}\n    .pta-catalog-nav a,.pta-catalog-group a{color:inherit;text-decoration:underline;text-underline-offset:3px}\n    .pta-catalog-note,.pta-catalog-meta{font-size:11px;opacity:.7;line-height:1.55}\n    .pta-catalog-group{border:1px solid rgba(128,128,128,.25);border-radius:10px;margin:10px 0;padding:10px}\n    .pta-catalog-group summary{cursor:pointer;font-size:12px;font-weight:700;overflow-wrap:anywhere}\n    .pta-catalog-group ul{list-style:none;padding:0;margin:0}.pta-catalog-group li{border-top:1px solid rgba(128,128,128,.2);padding-top:8px;margin-top:8px;overflow-wrap:anywhere}\n    .pta-catalog-group li a{font-size:12px;line-height:1.5;display:block}.pta-catalog-meta{margin-top:4px}\n'; document.head.appendChild(style);
+        var style = document.createElement('style'); style.id = 'pta-style'; style.textContent = CSS + '\n    .pta-expanded.pta-catalog-mode > :not(#pta-class-home){display:none!important}\n    #pta-class-home{padding:0 2px 10px;max-height:min(420px,calc(100vh - 140px));overflow:auto;color:inherit;text-align:left}\n    #pta-class-home[hidden]{display:none!important}\n    .pta-catalog-title{font-size:15px}.pta-catalog-nav{display:flex;gap:12px;margin:10px 0}\n    .pta-catalog-nav a,.pta-catalog-group a{color:inherit;text-decoration:underline;text-underline-offset:3px}\n    .pta-catalog-note,.pta-catalog-meta{font-size:11px;opacity:.7;line-height:1.55}\n    .pta-catalog-group{border:1px solid rgba(128,128,128,.25);border-radius:10px;margin:10px 0;padding:10px}\n    .pta-catalog-group summary{cursor:pointer;font-size:12px;font-weight:700;overflow-wrap:anywhere}\n    .pta-catalog-group ul{list-style:none;padding:0;margin:0}.pta-catalog-group li{border-top:1px solid rgba(128,128,128,.2);padding-top:8px;margin-top:8px;overflow-wrap:anywhere}\n    .pta-catalog-group li a{font-size:12px;line-height:1.5;display:block}.pta-catalog-meta{margin-top:4px}\n'; document.head.appendChild(style);
         var root = document.createElement('div'); root.id = 'pta-root';
         root.innerHTML = `
             <span id="pta-diagnostic-badge" hidden style="position:absolute;bottom:100%;right:0;white-space:nowrap;background:#b42318;color:white;padding:4px 8px;border-radius:6px">页面诊断正在记录</span><span id="pta-api-diagnostic-badge" hidden style="position:absolute;bottom:calc(100% + 32px);right:0;white-space:nowrap;background:#b42318;color:white;padding:4px 8px;border-radius:6px">接口诊断正在记录</span><div id="pta-shell" class="collapsed">
@@ -2439,9 +2605,17 @@ return module.exports; } catch (unavailable) { return null; } })();
                                 </div>
                             </div>
                         </div>
-                        <details class="pta-field"><summary>开发者选项</summary>
-                            <div><label><input id="pta-diagnostic-toggle" type="checkbox">页面诊断</label><span id="pta-diagnostic-status">已关闭 · 0 条</span><button id="pta-diagnostic-export" type="button" class="pta-secondary">导出</button> <button id="pta-diagnostic-clear" type="button" class="pta-secondary">清除</button></div>
-                            <div><label><input id="pta-api-diagnostic-toggle" type="checkbox">接口诊断</label><span id="pta-api-diagnostic-status">已关闭 · 0 条</span><button id="pta-api-diagnostic-preview-btn" type="button" class="pta-secondary">查看 / 导出</button> <button id="pta-api-diagnostic-clear" type="button" class="pta-secondary">清除</button></div>
+                        <details class="pta-field pta-dev-options"><summary>开发者选项</summary>
+                            <div class="pta-dev-card">
+                                <label class="pta-dev-toggle"><input id="pta-diagnostic-toggle" type="checkbox" aria-describedby="pta-diagnostic-status">页面诊断</label>
+                                <span id="pta-diagnostic-status" class="pta-dev-status">已关闭 · 0 条</span>
+                                <div class="pta-dev-actions"><button id="pta-diagnostic-export" type="button" class="pta-dev-btn pta-dev-btn-primary" aria-label="导出页面诊断">导出</button><button id="pta-diagnostic-clear" type="button" class="pta-dev-btn pta-dev-btn-clear" aria-label="清除页面诊断">清除</button></div>
+                            </div>
+                            <div class="pta-dev-card">
+                                <label class="pta-dev-toggle"><input id="pta-api-diagnostic-toggle" type="checkbox" aria-describedby="pta-api-diagnostic-status">接口诊断</label>
+                                <span id="pta-api-diagnostic-status" class="pta-dev-status">已关闭 · 0 条</span>
+                                <div class="pta-dev-actions"><button id="pta-api-diagnostic-preview-btn" type="button" class="pta-dev-btn pta-dev-btn-primary" aria-label="查看或导出接口诊断">查看 / 导出</button><button id="pta-api-diagnostic-clear" type="button" class="pta-dev-btn pta-dev-btn-clear" aria-label="清除接口诊断">清除</button></div>
+                            </div>
                         </details><div class="pta-help">配置均实时自动保存到当前浏览器本地。Key 仅保存在本地设备，不经任何中转。OpenCode Free 会自动探测 127.0.0.1:8788。</div>
                     </div>
                 </div>
@@ -3018,14 +3192,14 @@ return module.exports; } catch (unavailable) { return null; } })();
     function previewApiDiagnostics() {
         var existing=document.getElementById('pta-api-diagnostic-preview');if(existing)existing.remove();
         var overlay=document.createElement('div');overlay.id='pta-api-diagnostic-preview';overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#0008;display:flex;align-items:center;justify-content:center;';
-        var panel=document.createElement('div');panel.style.cssText='background:white;color:#222;padding:16px;border-radius:12px;width:min(90vw,800px);';
+        var panel=document.createElement('div');panel.className='pta-dev-preview';
         var title=document.createElement('h3');title.textContent='接口诊断预览';panel.appendChild(title);
-        var text=document.createElement('textarea');text.readOnly=true;text.style.cssText='width:100%;height:60vh;box-sizing:border-box;font:12px monospace;';
+        var text=document.createElement('textarea');text.readOnly=true;text.setAttribute('aria-label','接口诊断预览内容');
         text.value=JSON.stringify({format:'pta-api-shape-v2',records:apiDiagnostics.records},null,2);panel.appendChild(text);
-        var download=document.createElement('button');download.textContent='导出此预览';download.type='button';download.addEventListener('click',function(){
+        var download=document.createElement('button');download.textContent='导出此预览';download.type='button';download.className='pta-dev-btn pta-dev-btn-primary';download.addEventListener('click',function(){
             var url=URL.createObjectURL(new Blob([text.value],{type:'application/json'}));var a=document.createElement('a');a.href=url;a.download='pta-api-shape-'+Date.now()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);
         });panel.appendChild(download);
-        var close=document.createElement('button');close.textContent='关闭';close.type='button';close.addEventListener('click',function(){overlay.remove();});panel.appendChild(close);
+        var close=document.createElement('button');close.textContent='关闭';close.type='button';close.className='pta-dev-btn';close.addEventListener('click',function(){overlay.remove();});panel.appendChild(close);
         overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});overlay.appendChild(panel);document.body.appendChild(overlay);
     }
 
