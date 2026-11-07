@@ -55,7 +55,7 @@ const wait=async()=>{for(let i=0;i<15;i++)await new Promise(r=>setImmediate(r));
  api.startApiDiagnostics();const thirdParty=()=>{};realm.fetch=thirdParty;api.stopApiDiagnostics();assert.equal(realm.fetch,thirdParty);realm.fetch=originalFetch;
  api.startApiDiagnostics();const gen=state().generation;for(let i=0;i<70;i++)api.addApiDiagnostic(target,200,{total:1},null,gen);assert.equal(state().records.length,60);assert.equal(state().enabled,false);assert.ok(state().bytes<=256*1024);
  assert.ok(!section.includes('getAllResponseHeaders'));assert.ok(!section.includes('getResponseHeader'));assert.ok(!section.includes('localStorage'));assert.ok(!section.includes('document.cookie'));assert.ok(!section.includes('setRequestHeader'));
- const settings=src.slice(src.indexOf('<details class="pta-field"><summary>开发者选项'),src.indexOf('<div class="pta-help">配置均'));
+ const settings=src.slice(src.indexOf('<details class="pta-field pta-dev-options"><summary>开发者选项'),src.indexOf('<div class="pta-help">配置均'));
  assert.ok(settings.includes('pta-api-diagnostic-toggle'));assert.ok(settings.includes('pta-diagnostic-toggle'));assert.ok(!settings.includes('pta-help'));
  console.log('PASS: opt-in GET whitelist, path/query stripping, strict value/key projection, fetch/XHR passthrough, size/count/time guards, restoration and no credential collection');
 })().catch(e=>{console.error(e);process.exitCode=1;});
