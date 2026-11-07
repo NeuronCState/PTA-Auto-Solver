@@ -7,6 +7,37 @@ const parser = vm.runInNewContext(section('    function parseSubmissionScore(', 
 for (const text of ['提交结果 分数 0 / 20 等待评测', '提交结果 分数 0 / 20', '题目得分 20 / 20 答案正确', '提交结果 分数 0 / 20 Judging', '提交结果 分数 0 / 20 答案错误 评测中']) assert.equal(parser(text),null,text);
 assert.equal(parser('提交结果 得分：0 / 20 答案错误').score,0);
 assert.equal(parser('提交结果 分数 20 / 20 答案正确').score,20);
+// Sanitized representation of the pc-modal-container observed in the user's
+// diagnostic capture. No student identity, submission code or raw HTML is stored.
+function resultDiscovery() {
+ const makeNode=(classes,text,visible=true,buttons=[])=>({classes,text,buttons,getClientRects:()=>visible?[{}]:[]});
+ let clicks=0;
+ const confirm={text:'确认',getAttribute:()=>null,click:()=>clicks++};
+ const hidden=makeNode(['pc-modal-container'],'提交结果 分数 0 / 10 答案错误',false);
+ const other=makeNode(['pc-modal-container'],'设置');
+ const statement=makeNode([], '提交结果 分数 100 / 100 答案正确');
+ const pending=makeNode(['container_u7wKo','pc-modal-container','bg-bg-base'],'提交结果 评测中... 确认',true,[confirm]);
+ const final=makeNode(['pc-modal-container'],'提交结果 题目 R6-1 状态 答案正确 分数 10 / 10 评测详情 测试点 提示 内存(KB) 用时(ms) 结果 得分 0 无提示 19152 96 答案正确 5 / 5 1 无提示 19956 102 答案正确 5 / 5 确认',true,[confirm]);
+ let nodes=[hidden,other,statement,pending];
+ const context={textOf:n=>n.text,queryAll:(selector,root)=>selector==='button'?root.buttons:nodes.filter(n=>selector.split(',').some(s=>{s=s.trim();return s[0]==='.' && n.classes.includes(s.slice(1));}))};
+ const api=vm.runInNewContext(section('    function submissionResultContainer(', '    async function waitForSubmitButton')+'({submissionResultContainer,submissionSnapshot,readSubmissionScore,closeSubmissionResult})',context);
+ assert.equal(api.submissionResultContainer(),pending);
+ assert.equal(api.readSubmissionScore(),null);
+ nodes=[hidden,other,statement,final];
+ assert.equal(api.readSubmissionScore().score,10);
+ assert.equal(api.readSubmissionScore().total,10);
+ assert.match(api.readSubmissionScore().feedback,/5 \/ 5/);
+ assert.equal(api.closeSubmissionResult(),true);
+ assert.equal(clicks,1);
+ nodes=[hidden,other,statement];
+ assert.equal(api.submissionSnapshot(),'');
+ assert.equal(api.closeSubmissionResult(),false);
+ for (const legacy of ['ant-modal-content','modal-content']) {
+  nodes=[makeNode([legacy],final.text)];
+  assert.equal(api.readSubmissionScore().score,10);
+ }
+}
+resultDiscovery();
 async function navigation(results, continuous=true) {
  let moves=0, count=0;
  const context={state:{running:true}, detectType:()=> 'programming',setQuestionProgress(){},log(){},languageLabel(){},PROVIDERS:{undefined:{name:'mock'}}, submitCode:async()=>{count++;return results.shift() || {processed:1,fullScore:false};},isContinuous:()=>continuous,lastPage:()=>false,goNext:()=>{moves++; return true;},sleep:async()=>{}};
