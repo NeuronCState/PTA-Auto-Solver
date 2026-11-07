@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.7
+// @version      1.8.1-beta.8
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -264,12 +264,9 @@
     }
 
     function cleanText(value) {
-        return String(value || '')
-            .replace(/复制内容|格式|全屏|收起▾?|展开/g, ' ')
-            .replace(/\[?\s*C\+\+\s*\]?/g, '')
-            .replace(/[ \t]+\n/g, '\n')
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
+        // Toolbar nodes are removed structurally by questionText. Never strip
+        // words like 格式 or C++ from task prose, code or sample contents.
+        return String(value || '').trim();
     }
 
     function nearestProblem(el) {
@@ -296,7 +293,7 @@
                 return tile.view.state.doc.sliceString(0, tile.view.state.doc.length);
             }
         } catch (e) {}
-        return textOf(content);
+        return String(content.innerText != null ? content.innerText : (content.textContent || ''));
     }
 
     function editorEmpty(editor) { return getEditorDoc(editor).trim().length < 2; }
@@ -427,8 +424,8 @@
 
     function problemCodeBlocks(problem) {
         return queryAll('.cm-editor', problem).map(function (editor) {
-            return cleanText(getEditorDoc(editor) || textOf(editor));
-        }).filter(Boolean);
+            return getEditorDoc(editor);
+        }).filter(function (code) { return code.trim().length > 0; });
     }
 
     function sectionCode(problem, startPattern, endPattern) {
@@ -443,8 +440,8 @@
                 return;
             }
             if (active && node.classList && node.classList.contains('cm-editor')) {
-                var code = cleanText(getEditorDoc(node) || textOf(node));
-                if (code) result.push(code);
+                var code = getEditorDoc(node);
+                if (code.trim()) result.push(code);
             }
         });
         return result;
