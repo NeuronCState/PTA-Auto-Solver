@@ -8,12 +8,12 @@ assert.match(src,/else if \(state.assistanceMode\) startAssistance\(\)/);
 assert.match(src,/queryAll\('\.pta-assist, label, input, button', clone\)/);
 assert.match(src,/clone.querySelectorAll\('\.pta-assist, #pta-root/);
 assert.ok(!/writeInput\(|writeEditor\(|writeChoice\(|saveQuestion\(|submitCode\(|\.click\(/.test(code));
-function node(){return {children:[],attrs:{},isConnected:true,appendChild(n){this.children.push(n);return n},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,f){this[k]=f},remove(){this.isConnected=false},focus(){},classList:{toggle(){}}};}
+function node(){return {children:[],attrs:{},style:{},contains(n){return n===this||this.children.some(c=>c.contains(n))},getBoundingClientRect(){return {top:100,bottom:130,right:500}},isConnected:true,appendChild(n){this.children.push(n);return n},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,f){this[k]=f},remove(){this.isConnected=false},focus(){},classList:{toggle(){}}};}
 function context(){
  const controls={'pta-start':node()};const state={running:false,assistanceMode:true,provider:'test',language:'auto',concurrency:2,configs:{test:{model:'m',apiKey:'secret',thinking:3,maxTokens:8192,images:false}}};
- const ctx={state,PROVIDERS:{test:{supportsImages:true}},location:{href:'https://pintia.cn/problem-sets/s/exam/problems/type/2'},document:{body:node(),addEventListener(k,f){this[k]=f},removeEventListener(k){delete this[k]},getElementById:k=>controls[k],createElement:node,documentElement:{contains:n=>n.isConnected!==false}},AbortController,setInterval:f=>{ctx.tick=f;return 1},clearInterval:()=>{},normalizeConcurrency:n=>Math.max(1,Math.min(10,Number(n)||1)),setProgress(){},setStatus(...args){ctx.status=args},toast(){},log(){},saveSettings(){},providerReady:()=>true,modelSupportsVision:()=>false,detectType:()=> 'choice',questionText:p=>p.text,problemImages:()=>[],resolveLanguage:()=> 'java',extractOptions:p=>p.options,collectGroups:()=>ctx.groups,groupFillInputs:()=>ctx.groups,groupProgramFills:()=>ctx.groups,getEditorDoc:e=>e.code};
+ const ctx={window:{innerWidth:1000,innerHeight:800,addEventListener(){},removeEventListener(){}},renderAssistance(value){const n=node();n.textContent=value;return n},state,PROVIDERS:{test:{supportsImages:true}},location:{href:'https://pintia.cn/problem-sets/s/exam/problems/type/2'},document:{body:node(),addEventListener(k,f){this[k]=f},removeEventListener(k){delete this[k]},getElementById:k=>controls[k],createElement:node,documentElement:{contains:n=>n.isConnected!==false}},AbortController,setInterval:f=>{ctx.tick=f;return 1},clearInterval:()=>{},normalizeConcurrency:n=>Math.max(1,Math.min(10,Number(n)||1)),setProgress(){},setStatus(...args){ctx.status=args},toast(){},log(){},saveSettings(){},providerReady:()=>true,modelSupportsVision:()=>false,detectType:()=> 'choice',questionText:p=>p.text,problemImages:()=>[],resolveLanguage:()=> 'java',extractOptions:p=>p.options,collectGroups:()=>ctx.groups,groupFillInputs:()=>ctx.groups,groupProgramFills:()=>ctx.groups,getEditorDoc:e=>e.code};
  ctx.groups=[1,2,3].map(i=>({problem:Object.assign(node(),{text:'题'+i,options:[{label:'A',text:'1'},{label:'B',text:'2'}]}),inputs:[]}));
- vm.createContext(ctx);vm.runInContext(code,ctx);return ctx;
+ vm.createContext(ctx);vm.runInContext(code,ctx);ctx.assistanceSections=e=>{const n=node();n.textContent=e.answer;return n};return ctx;
 }
 const flush=()=>new Promise(r=>setImmediate(r));
 (async()=>{
@@ -33,8 +33,8 @@ const flush=()=>new Promise(r=>setImmediate(r));
  btn.click({preventDefault(){},stopPropagation(){}});
  const overlay=ctx.assistance.modal,dialog=overlay.children[0],out=dialog.children[2];
  assert.equal(dialog.attrs.role,'dialog');assert.equal(out.textContent,'<script>alert(1)</script>');
- overlay.click({target:dialog});assert.equal(ctx.assistance.modal,overlay);
- overlay.click({target:overlay});assert.equal(ctx.assistance.modal,null);
+ ctx.document.pointerdown({target:dialog});assert.equal(ctx.assistance.modal,overlay);
+ ctx.document.pointerdown({target:node()});assert.equal(ctx.assistance.modal,null);
  btn.click({preventDefault(){},stopPropagation(){}});
  ctx.document.keydown({key:'Escape',preventDefault(){},stopPropagation(){}});assert.equal(ctx.assistance.modal,null);
  ctx.groups[0].problem.text='改题';ctx.tick();assert.equal(ctx.assistance.entries.length,0);
