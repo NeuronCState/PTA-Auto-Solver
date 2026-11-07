@@ -27,3 +27,9 @@ Beta.6 checks: `node tests/concurrency-ui.cjs`, `node tests/concurrency.cjs`, `n
 The latest user direction supersedes per-question saves: page-save tests assert exactly one Save after all successful target writes, no Save on request failure or stop, and one Save for single-question mode.
 
 Unsaved progress: `node tests/unsaved-progress.cjs` tests baseline/local dedup, same-page restart, reload, page/type/list changes and multi-blank counts; `node tests/progress-pipeline.cjs` runs the real job/progress path and confirms 6/41 becomes 7/41 before Save, stays 7/41 after saved catch-up and when rewriting the same question.
+
+Beta.7 replaces the toggle with a slider-only setting. concurrency-ui.cjs now verifies default serial mode, disabled legacy-toggle migration to 1, enabled legacy count preservation, field removal, slider input/change persistence, and queue use of the selected limit.
+
+Beta.7 scroll regression: `node tests/scroll.cjs` restores the small-question follow-scroll calls lost in the concurrent-job refactor. Serial runs reveal the active question when its request begins; concurrent runs reveal successfully filled questions in forward page order, without bouncing backwards for late replies. Tests cover stop/stale guards, detached nodes, invalid answers and scroll errors not discarding valid writes. This is a mocked DOM check, not mouse-wheel or browser visual QA. No wheel-blocking listener or global scrolling lock was found; the user's brief report does not identify whether they meant manual scrolling or answer-follow scrolling.
+
+`node tests/programming-retry.cjs` covers Chinese sample-section aliases, full-statement retention, source text excluded from status detection, exact prior-submission snapshot and visible checkpoint feedback in the generated retry prompt, plus opt-in pre-close result capture. Synthetic sample/submission code is used because the diagnostic export contains neither the real code nor final failed tests.
