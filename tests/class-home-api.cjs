@@ -1,11 +1,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('PTA Auto Solver Pro-1.8.1-beta.1.user.js','utf8');
 const code=src.slice(src.indexOf('    function catalogueRoute('),src.indexOf('    function render()'));
-function harness({total=72,mode='',delay=0}={}){
+function harness({total=72,mode='',delay=0,dom=[]}={}){
  let now=0,seq=0,active=0,max=0;const timers=new Map(),calls=[],events={},intervals=[];
  const setTimer=(fn,ms)=>{timers.set(++seq,{fn,at:now+ms});return seq;};
  const ctx={URL,Set,Map,AbortController,Uint8Array,TextDecoder,Date:class extends Date{static now(){return now;}},setTimeout:setTimer,clearTimeout:id=>timers.delete(id),setInterval:fn=>intervals.push(fn),location:{origin:'https://pintia.cn',pathname:'/problem-sets/dashboard'},window:{addEventListener:(k,fn)=>events[k]=fn},document:{getElementById:()=>null,querySelector:()=>null,querySelectorAll:()=>[],createElement(){throw Error('no embedded document');}},fetch:async(url,options)=>{
-  assert.equal(options.method,'GET');assert.equal(options.credentials,'same-origin');assert.equal(options.mode,'same-origin');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.equal(options.headers,undefined);
+  assert.equal(options.method,'GET');assert.equal(options.credentials,'same-origin');assert.equal(options.mode,'same-origin');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.equal(options.headers.Accept,'application/json;charset=UTF-8');assert.deepEqual(Object.keys(options.headers),['Accept']);
   const u=new URL(url);calls.push({url:u,at:now});active++;max=Math.max(max,active);
   if(delay)await new Promise((resolve,reject)=>{const t=setTimer(resolve,delay);options.signal.addEventListener('abort',()=>{timers.delete(t);reject(Error('abort'));},{once:true});});
   let data,status=200;
@@ -23,12 +23,14 @@ function harness({total=72,mode='',delay=0}={}){
    data={problemStatus:Array.from({length:40},(_,i)=>({id:String(i+1),score:2,problemSubmissionStatus:i<32?'PROBLEM_SUBMITTED':'PROBLEM_ACCEPTED'}))};
    if(mode==='unknown')data.problemStatus[0].problemSubmissionStatus='UNVERIFIED';
   }
-  active--;const bytes=new TextEncoder().encode(JSON.stringify(data));let read=false;
+  active--;const body=mode==='html'?'<!doctype html><html>PRIVATE LOGIN SECRET</html>':mode==='empty'?'':mode==='non-json'?'PRIVATE SECRET not json':JSON.stringify(data);const bytes=new TextEncoder().encode(body);let read=false;
   return {status,ok:status>=200&&status<300,redirected:false,url,body:{getReader:()=>({read:async()=>read?{done:true}:(read=true,{done:false,value:bytes}),cancel:async()=>{}})}};
  }};
- const api=vm.runInNewContext(code+';({catalogueState,loadClassCatalogue,stopClassCatalogue,startClassHome,catalogueAPIRow,catalogueAPIMetrics,groupCatalogueRows})',ctx);
+ ctx.getTestRows=()=>dom.map(row=>Object.assign({},row));
+ const diagnosticRecords=[];ctx.apiDiagnostics={enabled:false,generation:1};ctx.apiDiagnosticTarget=url=>({path:new URL(url).pathname.replace(/\/\d+/g,'/:id'),method:'GET'});ctx.addApiDiagnostic=(...args)=>diagnosticRecords.push(args);
+ const api=vm.runInNewContext(code+'; catalogueRows=function(){return getTestRows();};({catalogueState,loadClassCatalogue,stopClassCatalogue,startClassHome,syncCatalogueDOM,catalogueAPIRow,catalogueAPIMetrics,groupCatalogueRows})',ctx);
  async function flush(p){let done=false,error;Promise.resolve(p).then(()=>done=true,e=>{done=true;error=e;});for(let i=0;!done&&i<20000;i++){for(let j=0;j<40;j++)await Promise.resolve();if(!done&&timers.size){let [id,t]=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];timers.delete(id);now=t.at;t.fn();}}assert.ok(done,'settled');if(error)throw error;}
- return {api,ctx,calls,events,intervals,flush,max:()=>max,now:()=>now};
+ return {api,ctx,calls,events,intervals,flush,diagnosticRecords,setDOM:rows=>{dom=rows;},max:()=>max,now:()=>now};
 }
 if(require.main===module)(async()=>{
  let h=harness({delay:700});await h.flush(h.api.loadClassCatalogue());assert.equal(h.api.catalogueState.status,'ready');assert.equal(h.api.catalogueState.rows.length,72);assert.equal(h.calls.filter(c=>c.url.pathname==='/api/problem-sets').length,3);assert.equal(h.calls.length,147);assert.ok(h.max()<=2);assert.ok(h.max()===2);
