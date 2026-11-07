@@ -2,11 +2,12 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync(process.env.PTA_SCRIPT||'PTA Auto Solver Pro-1.8.1-beta.1.user.js','utf8');
 const start=source.indexOf('    function questionProgress()'),end=source.indexOf('    function setQuestionProgress',start);
 function setup(initial=2,total=10,type=2){
- const state={saved:initial,total,type,set:1,page:'',missing:false};
+ const state={saved:initial,total,type,set:1,page:'',missing:false,groups:[]};
  const url=()=>`https://pintia.cn/problem-sets/${state.set}/exam/problems/type/${state.type}${state.page}`;
  const names={1:'判断题',2:'单选题',3:'多选题',4:'填空题',5:'程序填空题',6:'函数题',7:'编程题'};
  const label=()=>`${names[state.type]} ${state.saved} / ${state.total}`;
  const context={location:{get href(){return url()},get pathname(){return url().replace(/^https:\/\/[^/]+/,'').split('?')[0]}},document:{body:{get text(){return state.missing?'':label()}},documentElement:{contains:p=>!p.detached}},textOf:e=>e.text||'',queryAll:()=>state.missing?[]:[{href:url(),text:label()}]};
+ Object.assign(context,{collectGroups:()=>state.groups,groupFillInputs:()=>state.groups,groupProgramFills:()=>state.groups});
  const api=vm.runInNewContext(source.slice(start,end)+'({questionProgress,captureInitialProgress,markQuestionWritten,reconcileLocalProgress})',context);
  return {state,...api};
 }
@@ -61,3 +62,31 @@ a.state.total=1;const small=a.captureInitialProgress();a.markQuestionWritten(pro
 const noSummary=setup();noSummary.state.missing=true;assert.equal(noSummary.questionProgress(),null);assert.equal(noSummary.markQuestionWritten(problem('q'),choice(),false),false);
 const program=setup(0,6,7);program.captureInitialProgress();assert.equal(program.markQuestionWritten(problem('q'),blanks('code'),false),false);
 console.log('PASS: unsaved question count, dedup, save catch-up, restart/reload, navigation and multi-blank groups');
+
+// Same URL/total SPA replacement resets; ordinary rerenders/reordering do not.
+for(const type of [1,2,3,4,5]){
+ const spa=setup(0,2,type);
+ spa.state.groups=['a','b'].map(id=>({problem:problem(id)}));
+ const old=spa.captureInitialProgress();
+ spa.markQuestionWritten(problem('a'),type<=3?choice():blanks('x'),false,old);
+ assert.equal(spa.questionProgress().current,1);
+ spa.state.groups=['b','a'].map(id=>({problem:problem(id)}));
+ assert.equal(spa.questionProgress().current,1); // New nodes, same stable ID set.
+ spa.state.groups=[];assert.equal(spa.questionProgress().current,1); // Loading gap.
+ spa.state.groups=[{problem:{text:'R1-1'}}];
+ assert.equal(spa.questionProgress().current,1); // No stable IDs: preserve.
+ spa.state.groups=['c','d'].map(id=>({problem:problem(id)}));
+ assert.equal(spa.questionProgress().current,0);
+ assert.equal(spa.markQuestionWritten(problem('c'),type<=3?choice():blanks('x'),false,old),false);
+ const fresh=spa.captureInitialProgress();
+ assert.equal(spa.markQuestionWritten(problem('c'),type<=3?choice():blanks('x'),false,fresh),true);
+ assert.equal(spa.questionProgress().current,1);
+}
+// Numeric PTA wrapper IDs above extracted question nodes are stable too.
+const wrapped=setup(0,1,4);
+wrapped.state.groups=[{problem:{parentElement:problem('123456789')}}];
+const wrapToken=wrapped.captureInitialProgress();
+wrapped.markQuestionWritten(problem('123456789'),blanks('x'),false,wrapToken);
+wrapped.state.groups=[{problem:{parentElement:problem('987654321')}}];
+assert.equal(wrapped.questionProgress().current,0);
+console.log('PASS: same-URL stable question-list replacement, rerenders and missing-ID fallback');
