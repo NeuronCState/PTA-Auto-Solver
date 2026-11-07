@@ -74,13 +74,18 @@ const flush=()=>new Promise(r=>setImmediate(r));
  const data=fill.assistanceSnapshot(fill.groups[0],'fill');assert.equal(data.blankCount,2);assert.ok(!JSON.stringify(data).includes('secret answer'));
  // Image-disabled setting explicitly warns rather than fabricating an image answer.
  fill.requestAI=(m,t,h,s)=>{assert.match(m[1].content,/本次未发送图片/);return Promise.resolve('ok')};await fill.requestAssistance('fill',{description:'图',images:['https://example.test/a.png']},new AbortController().signal);
- assert.match(fill.assistancePrompt('programming',{}),/不要给出答案.*代码/);assert.match(fill.assistancePrompt('function',{}),/需要用到的方法/);assert.match(fill.assistancePrompt('fill',{}),/【答案】/);
+ assert.match(fill.assistancePrompt('programming',{}),/不要给出完整答案.*完整程序/);assert.match(fill.assistancePrompt('function',{}),/需要用到的语句/);assert.match(fill.assistancePrompt('fill',{}),/【答案】/);
  // Large questions never publish an obvious complete-code response.
  const large=context();large.assistanceGroups=()=>[large.groups[0]];
  large.detectType=()=> 'programming';large.extractProgramming=()=>({description:'编程题'});
  large.requestAI=()=>Promise.resolve('```java\npublic class Main {}\n```');
  large.startAssistance();await flush();assert.equal(large.assistance.entries[0].failed,true);
  assert.match(large.assistance.entries[0].answer,/结果已隐藏/);
+ // Independent statement examples are now permitted, but full programs remain rejected above.
+ const statements=context();statements.assistanceGroups=()=>[statements.groups[0]];
+ statements.detectType=()=> 'programming';statements.extractProgramming=()=>({description:'编程题'});
+ statements.requestAI=()=>Promise.resolve('【解题思路】拆分再转换\n【需要用到的语句】\n```java\nString[] parts = input.split("；");\n```\n```java\nint value = Integer.parseInt(price.trim());\n```');
+ statements.startAssistance();await flush();assert.equal(statements.assistance.entries[0].failed,false);
  // Empty completions are failures, not successfully prepared explanations.
  const empty=context();empty.requestAI=()=>Promise.resolve('  ');empty.startAssistance();await flush();
  assert.ok(empty.assistance.entries.every(e=>e.failed));
