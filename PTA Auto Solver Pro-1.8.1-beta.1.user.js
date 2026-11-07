@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PTA Auto Solver Beta
 // @namespace    https://pintia.cn/
-// @version      1.8.1-beta.3
+// @version      1.8.1-beta.4
 // @description  轻量、清晰的 PTA AI 辅助答题脚本
 // @author       NeuronCState
 // @match        https://pintia.cn/*
@@ -903,7 +903,7 @@
 
     function submissionResultContainer() {
         // Never read scores from the problem statement or our own progress panel.
-        var candidates = queryAll('[role="dialog"], .ant-modal-content, .modal-content');
+        var candidates = queryAll('[role="dialog"], .ant-modal-content, .modal-content, .pc-modal-container');
         return candidates.find(function (node) {
             return node.getClientRects().length && /提交结果/.test(textOf(node));
         }) || null;
