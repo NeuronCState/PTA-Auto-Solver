@@ -19,7 +19,7 @@ function resultDiscovery() {
  const pending=makeNode(['container_u7wKo','pc-modal-container','bg-bg-base'],'提交结果 评测中... 确认',true,[confirm]);
  const final=makeNode(['pc-modal-container'],'提交结果 题目 R6-1 状态 答案正确 分数 10 / 10 评测详情 测试点 提示 内存(KB) 用时(ms) 结果 得分 0 无提示 19152 96 答案正确 5 / 5 1 无提示 19956 102 答案正确 5 / 5 确认',true,[confirm]);
  let nodes=[hidden,other,statement,pending];
- const context={textOf:n=>n.text,queryAll:(selector,root)=>selector==='button'?root.buttons:nodes.filter(n=>selector.split(',').some(s=>{s=s.trim();return s[0]==='.' && n.classes.includes(s.slice(1));}))};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,textOf:n=>n.text,queryAll:(selector,root)=>selector==='button'?root.buttons:nodes.filter(n=>selector.split(',').some(s=>{s=s.trim();return s[0]==='.' && n.classes.includes(s.slice(1));}))};
  const api=vm.runInNewContext(section('    function submissionResultContainer(', '    async function waitForSubmitButton')+'({submissionResultContainer,submissionSnapshot,readSubmissionScore,closeSubmissionResult})',context);
  assert.equal(api.submissionResultContainer(),pending);
  assert.equal(api.readSubmissionScore(),null);
@@ -40,20 +40,20 @@ function resultDiscovery() {
 resultDiscovery();
 async function navigation(results, continuous=true) {
  let moves=0, count=0;
- const context={state:{running:true}, detectType:()=> 'programming',setQuestionProgress(){},log(){},languageLabel(){},PROVIDERS:{undefined:{name:'mock'}}, submitCode:async()=>{count++;return results.shift() || {processed:1,fullScore:false};},isContinuous:()=>continuous,lastPage:()=>false,goNext:()=>{moves++; return true;},sleep:async()=>{}};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,typeRoute:()=>null,questionProgress:()=>null,goNextType:async()=>false,saveQuestion:async()=>({status:'saved'}),location:{href:"https://pintia.cn/test"},state:{running:true}, detectType:()=> 'programming',setQuestionProgress(){},log(){},languageLabel(){},PROVIDERS:{undefined:{name:'mock'}}, submitCode:async()=>{count++;return results.shift() || {processed:1,fullScore:false};},isContinuous:()=>continuous,lastPage:()=>false,goNext:()=>{moves++; return true;},sleep:async()=>{}};
  await vm.runInNewContext(section('    async function autoSolve()', '    var CSS =')+'autoSolve()',context);
  return {moves,count};
 }
 async function grading(sequence, previous='') {
  let clock=0;
- const context={state:{running:true}, Date:{now:()=>clock},submissionSnapshot:()=>sequence.shift()||'',parseSubmissionScore:parser,sleep:async(ms)=>{clock+=ms;}};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,typeRoute:()=>null,questionProgress:()=>null,goNextType:async()=>false,saveQuestion:async()=>({status:'saved'}),location:{href:"https://pintia.cn/test"},state:{running:true}, Date:{now:()=>clock},submissionSnapshot:()=>sequence.shift()||'',parseSubmissionScore:parser,sleep:async(ms)=>{clock+=ms;}};
  return vm.runInNewContext(section('    async function waitForSubmissionScore(', '    async function solveChoicePage')+'waitForSubmissionScore(2000,'+JSON.stringify(previous)+')',context);
 }
 async function retryFeedback() {
  const prompts=[];
  const editor={};
  const results=[{score:12,total:20,feedback:'提交结果 分数 12 / 20 部分正确 检查点 3 运行超时'}, {score:20,total:20,feedback:'答案正确'}];
- const context={state:{running:true},queryAll:()=>[{}],setQuestionProgress(){},submissionSnapshot:()=>'',closeSubmissionResult(){},extractProgramming:()=>({desc:'test'}),editableEditor:()=>editor,isSkipAnswered:()=>true,getEditorDoc:()=>'',solveOne:async(type,prompt)=>{prompts.push(prompt.description);return 'code';},writeEditor:()=>true,normalizeAnswer:x=>x,problemImages:()=>[],resolveLanguage:()=> 'C',waitForSubmitButton:async()=>({click(){}}),sleep:async()=>{},log(){},setStatus(){},waitForSubmissionScore:async()=>results.shift(),document:{documentElement:{contains:()=>true}}};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,typeRoute:()=>null,questionProgress:()=>null,goNextType:async()=>false,saveQuestion:async()=>({status:'saved'}),location:{href:"https://pintia.cn/test"},state:{running:true},queryAll:()=>[{}],setQuestionProgress(){},submissionSnapshot:()=>'',closeSubmissionResult(){},extractProgramming:()=>({desc:'test'}),editableEditor:()=>editor,isSkipAnswered:()=>true,getEditorDoc:()=>'',solveOne:async(type,prompt)=>{prompts.push(prompt.description);return 'code';},writeEditor:()=>true,normalizeAnswer:x=>x,problemImages:()=>[],resolveLanguage:()=> 'C',waitForSubmitButton:async()=>({click(){}}),sleep:async()=>{},log(){},setStatus(){},waitForSubmissionScore:async()=>results.shift(),document:{documentElement:{contains:()=>true}}};
  await vm.runInNewContext(section('    async function submitCode(', '    async function autoSolve')+'submitCode("programming")',context);
  assert.equal(prompts.length,2);
  assert.match(prompts[1],/12 \/ 20/);
@@ -61,9 +61,9 @@ async function retryFeedback() {
 }
 async function nonProgrammingMode(name, continuous, skipFirst=false) {
  let calls=0;
- const groups=Array.from({length:3},(_,index)=>({answered:skipFirst && index===0,problem:{scrollIntoView(){}},inputs:[{value:''},{value:''}],editor:{}}));
- const context={state:{running:true},collectGroups:()=>groups,groupFillInputs:()=>groups,groupProgramFills:()=>groups,isSkipAnswered:()=>true,selected:g=>g.answered,isContinuous:()=>continuous === 'disable-during-request' ? calls === 0 : continuous,setQuestionProgress(){},sleep:async()=>{},extractOptions:()=>[],questionText:()=>'',problemImages:()=>[],solveOne:async()=>{calls++;return 'A|B';},writeChoice:()=>true,writeInput:(input,value)=>{input.value=value;return true;},normalizeAnswer:x=>x,log(){},getEditorDoc:()=> '______',resolveLanguage:()=> 'C'};
- await vm.runInNewContext(section('    async function solveChoicePage','    async function submitCode')+name+'("choice")',context);
+ const groups=Array.from({length:3},(_,index)=>({answered:skipFirst && index===0,problem:{contains:()=>true},inputs:[{value:'',checked:false},{value:'',checked:false}],editor:{}}));
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,questionSaveControl:()=>({}),textOf:()=>'',location:{href:'https://pintia.cn/test'},document:{documentElement:{contains:()=>true}},state:{running:true,concurrentEnabled:false},collectGroups:()=>groups,groupFillInputs:()=>groups,groupProgramFills:()=>groups,isSkipAnswered:()=>true,selected:g=>g.answered,isContinuous:()=>continuous === 'disable-during-request' ? calls === 0 : continuous,setQuestionProgress(){},setProgress(){},sleep:async()=>{},extractOptions:problem=>groups.find(g=>g.problem===problem).inputs.map((input,i)=>({label:i?'B':'A',text:i?'B':'A',input})),questionText:()=>'',problemImages:()=>[],solveOne:async()=>{calls++;return 'A|B';},saveQuestion:async()=>({status:'saved'}),writeChoice:()=>true,writeInput:(input,value)=>{input.value=value;return true;},normalizeAnswer:x=>x,normalizeConcurrency:()=>3,log(){},getEditorDoc:()=> '______',resolveLanguage:()=> 'C'};
+ await vm.runInNewContext(section('    function concurrentJob','    // Small-question pages use')+name+'("choice")',context);
  return calls;
 }
 (async()=>{
@@ -91,7 +91,7 @@ async function nonProgrammingMode(name, continuous, skipFirst=false) {
 {
  const clicked=[];
  const options=['A','B','C','D'].map(label=>({label,text:label,input:{click:()=>clicked.push(label)}}));
- const context={extractOptions:()=>options};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,extractOptions:()=>options};
  const choose=vm.runInNewContext(section('    function parseAnswer(', '    function groupFillInputs')+'writeChoice',context);
  assert.equal(choose({},'B',false),true);
  assert.deepEqual(clicked,['B']);
@@ -112,7 +112,7 @@ async function nonProgrammingMode(name, continuous, skipFirst=false) {
  const clone={parts:['题目','editor0','editor1','option']};
  const copies=live.map((_,i)=>({remove:()=>{clone.parts[i+1]='';},replaceWith:node=>{clone.parts[i+1]=node.textContent;}}));
  const problem={cloneNode:()=>clone};
- const context={queryAll:(selector,root)=>selector==='.cm-editor'?(root===problem?live:copies):[{remove:()=>{clone.parts[3]='';}}],getEditorDoc:e=>e.doc,document:{createElement:()=>({textContent:''})},textOf:()=>clone.parts.join('\n'),cleanText:s=>s};
+ const context={markQuestionWritten(){},captureInitialProgress(){},reconcileLocalProgress(){},setQuestionProgress(){},canWriteQuestions:()=>true,queryAll:(selector,root)=>selector==='.cm-editor'?(root===problem?live:copies):[{remove:()=>{clone.parts[3]='';}}],getEditorDoc:e=>e.doc,document:{createElement:()=>({textContent:''})},textOf:()=>clone.parts.join('\n'),cleanText:s=>s};
  const extract=vm.runInNewContext(section('    function questionText(', '    function problemCodeBlocks')+'questionText',context);
  const actual=extract(problem);
  assert.ok(actual.includes(code));
