@@ -9,7 +9,7 @@ a.animations[0].onfinish();assert.equal(a.section.open,true);ctx.toggleCatalogue
 ctx.toggleCatalogueGroup(a.section,a.body,a.summary);const old=a.animations.at(-1);ctx.toggleCatalogueGroup(a.section,a.body,a.summary);old.onfinish();assert.equal(a.section.dataset.expanded,'false','late animation cannot reverse newest target');a.animations.at(-1).onfinish();assert.equal(a.section.open,false);
 reduced=true;ctx.toggleCatalogueGroup(a.section,a.body,a.summary);assert.equal(a.section.open,true);assert.equal(a.section.ptaAnimation,null);
 delete b.body.animate;ctx.toggleCatalogueGroup(b.section,b.body,b.summary);assert.equal(b.section.open,false);
-assert.match(src,/\.pta-catalog-items\{max-height:min\(240px,38vh\);overflow-y:auto;overscroll-behavior:contain/);
+assert.match(src,/\.pta-catalog-items\{max-height:min\(240px,38vh\);overflow-y:auto;overscroll-behavior:auto/);
 const render=src.slice(src.indexOf('    function refreshClassHome()'),src.indexOf('    var classHomeTimer'));
 assert.ok(render.indexOf("catalogueState.message || '准备读取…'")>render.indexOf('data.groups.forEach'));
 assert.match(render,/scrollPositions\.get/);assert.match(render,/view.scrollTop=outerScroll/);assert.match(render,/list.tabIndex=0/);
