@@ -9,7 +9,8 @@ const raw='图书价格汇总\n输入格式:\n'+input+'\n输出格式:\n'+output
 const heading=text=>({tagName:'H3',text});const editor=doc=>({tagName:'DIV',doc,classList:{contains:c=>c==='cm-editor'}});
 const nodes=[heading('输入格式:'),heading('输出格式:'),heading('输入样例:'),editor(sampleIn),heading('输出样例:'),editor(sampleOut),heading('提示:')];
 const problem={querySelectorAll:()=>nodes};
-const q=vm.runInNewContext(section('    function problemCodeBlocks(', '    function extractFunction(')+'extractProgramming(problem)',{problem,questionText:()=>raw,textOf:n=>n.text,cleanText:s=>String(s).trim(),getEditorDoc:e=>e.doc,queryAll:selector=>selector==='.cm-editor'?nodes.filter(n=>n.doc):[]});
+const cleanText=vm.runInNewContext(section('    function cleanText(', '    function nearestProblem(')+'cleanText');
+const q=vm.runInNewContext(section('    function problemCodeBlocks(', '    function extractFunction(')+'extractProgramming(problem)',{problem,questionText:()=>cleanText(raw),textOf:n=>n.text,cleanText,getEditorDoc:e=>e.doc,queryAll:selector=>selector==='.cm-editor'?nodes.filter(n=>n.doc):[]});
 assert.equal(q.input,input);assert.equal(q.output,output);assert.equal(q.sampleInput,sampleIn);assert.equal(q.sampleOutput,sampleOut);assert.match(q.fullText,/额外要求必须保留/);assert.equal(q.frameworkCode,'');
 const parser=vm.runInNewContext(section('    function parseSubmissionScore(', '    function readSubmissionScore')+'parseSubmissionScore');
 assert.equal(parser('提交结果 状态 部分正确 分数 2 / 10 评测详情 测试点1 答案错误 提交代码 String text="Running 等待";').score,2);
